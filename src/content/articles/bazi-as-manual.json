@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "slug": "bazi-as-manual",
+  "title": "命盤像說明書，不是判決書",
+  "date": "2026-01-26",
+  "tags": ["八字", "觀念"],
+  "status": "published",
+
+  "content_json": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "命盤不是用來判你死刑的，它比較像『你怎麼用力會更有效率』。"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "你要的是選擇權，不是恐嚇。" }]
+      }
+    ]
+  },
+
+  "content_html": "<p>命盤不是用來判你死刑的，它比較像『你怎麼用力會更有效率』。</p><p>你要的是選擇權，不是恐嚇。</p>"
+}

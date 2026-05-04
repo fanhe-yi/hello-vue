@@ -1,15 +1,44 @@
 <!DOCTYPE html>
 <html lang="">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico" />
+    <title>梵和易學</title>
+
+    <!-- 
+==========================================================
+✅ GA4 追蹤碼
+目的：
+- 載入 Google Analytics
+- 記錄訪客與頁面瀏覽
+==========================================================
+-->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-S79X15FF7E"
+    ></script>
+
+    <script>
+      /* 建立 dataLayer 給 GA 使用 */
+      window.dataLayer = window.dataLayer || [];
+
+      /* 定義 gtag 函式 */
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+
+      /* 告知 GA 初始化時間 */
+      gtag("js", new Date());
+
+      /* 設定你的 Measurement ID */
+      gtag("config", "G-S79X15FF7E");
+    </script>
   </head>
   <body>
     <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong></strong>
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->

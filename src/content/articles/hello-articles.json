@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "slug": "hello-articles",
+  "title": "第一篇：我為什麼要寫文章",
+  "date": "2026-01-26",
+  "tags": ["隨筆", "觀念"],
+  "status": "published",
+
+  "content_json": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "有些話放在 Threads 太短，放在腦內又太吵。"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "所以我想開一個地方，把想講的話好好講完。" }
+        ]
+      }
+    ]
+  },
+
+  "content_html": "<p>有些話放在 Threads 太短，放在腦內又太吵。</p><p>所以我想開一個地方，把想講的話好好講完。</p>"
+}
