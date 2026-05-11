@@ -14,4 +14,4 @@ Disallow: /admin/
 # LIFF 路由不收錄（只給 LINE 內開啟用）
 Disallow: /liff/
 
-Sitemap: https://chen-yi.tw/sitemap.xml
+Sitemap: https://www.chen-yi.tw/sitemap.xml

@@ -22,7 +22,7 @@ const https = require("https");
 /* =========================
   設定
 ========================== */
-const SITE_URL = process.env.SITE_URL || "https://chen-yi.tw";
+const SITE_URL = process.env.SITE_URL || "https://www.chen-yi.tw";
 const API_URL =
   process.env.ARTICLES_API_URL || "https://api.chen-yi.tw/api/articles";
 const DIST_DIR = path.join(__dirname, "..", "dist");
