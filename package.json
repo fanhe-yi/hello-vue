@@ -6,7 +6,8 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "prerender": "node scripts/prerender.js",
-    "build:seo": "npm run build && npm run prerender",
+    "sitemap": "node scripts/generate-sitemap.js",
+    "build:seo": "npm run build && npm run prerender && npm run sitemap",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
