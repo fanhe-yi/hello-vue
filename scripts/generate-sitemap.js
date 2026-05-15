@@ -39,13 +39,36 @@ const FALLBACK_INDEX = path.join(
   固定頁面（手動維護）
   priority: Google 用的相對權重 0.0-1.0
   changefreq: 預估更新頻率，給 Google 參考
+
+  注意：被 prerender 的路徑（/about, /articles）在 nginx 預設行為下
+  會 301 加上後綴斜線（→ /about/、/articles/）。
+  為了讓 sitemap 與 canonical URL 完全一致、避免 GSC 標記「重新導向錯誤」，
+  這裡直接用後綴斜線形式。
 ========================== */
 const STATIC_ROUTES = [
   { path: "/", priority: 1.0, changefreq: "weekly" },
-  { path: "/about", priority: 0.8, changefreq: "monthly" },
+  { path: "/about/", priority: 0.8, changefreq: "monthly" },
   { path: "/booking", priority: 0.9, changefreq: "monthly" },
-  { path: "/articles", priority: 0.7, changefreq: "daily" },
+  { path: "/articles/", priority: 0.7, changefreq: "daily" },
 ];
+
+/* =========================
+  讀取本地 prerender index.json，產出「已被 prerender 的 slug 集合」
+  目的：對這些 slug，sitemap 也要加後綴斜線（避免 301 chain）
+========================== */
+function getPrerenderedSlugs() {
+  try {
+    const raw = fs.readFileSync(FALLBACK_INDEX, "utf-8");
+    const data = JSON.parse(raw);
+    return new Set(
+      (data.items || [])
+        .filter((a) => a.status === "published")
+        .map((a) => a.slug),
+    );
+  } catch (e) {
+    return new Set();
+  }
+}
 
 /* =========================
   fetch articles from API
@@ -113,6 +136,7 @@ function formatDate(d) {
 ========================== */
 function buildSitemap(articles) {
   const urls = [];
+  const prerenderedSlugs = getPrerenderedSlugs();
 
   // 固定頁
   for (const r of STATIC_ROUTES) {
@@ -129,8 +153,14 @@ function buildSitemap(articles) {
     if (!a.slug) continue;
     // 只收 published（API 已過濾但保險起見再檢查）
     if (a.status && a.status !== "published") continue;
+
+    /* 被 prerender 的 slug 要加後綴斜線（nginx 會 301 到斜線版） */
+    const slugPart = prerenderedSlugs.has(a.slug)
+      ? `${xmlEscape(a.slug)}/`
+      : xmlEscape(a.slug);
+
     urls.push({
-      loc: `${SITE_URL}/articles/${xmlEscape(a.slug)}`,
+      loc: `${SITE_URL}/articles/${slugPart}`,
       lastmod: formatDate(a.updatedAt || a.published_at || a.date),
       changefreq: "monthly",
       priority: "0.6",
