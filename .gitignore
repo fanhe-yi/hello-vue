@@ -4,3 +4,10 @@ dist
 .DS_Store
 dist/
 dist拷貝/
+
+# Claude worktrees / scratch
+.claude/
+
+# Env variants (production secrets shouldn't be tracked)
+.env.*
+!.env.example
