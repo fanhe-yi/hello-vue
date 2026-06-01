@@ -189,7 +189,7 @@ export default {
           title: "姓名鑑定",
           desc: "依命主選擇的問題，進行命盤結構諮詢與未來結果分析之文字說明。",
           method: "文字解析 / LINE 語音",
-          price: 600,
+          price: 800,
           unit: "30 分",
         },
       ],
