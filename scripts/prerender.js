@@ -193,6 +193,7 @@ function ensureDir(filePath) {
     "/",
     "/about",
     "/articles",
+    "/nameology",
 
     /* =========================
       文章頁

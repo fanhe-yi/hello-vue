@@ -11,6 +11,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import BookingForm from "../components/BookingForm.vue";
 import HomeView from "../views/HomeView.vue";
 import AboutView from "../views/AboutView.vue";
+import NameologyView from "../views/NameologyView.vue";
 import AdminUnavailable from "@/views/AdminUnavailable.vue";
 import LiffBookingView from "@/views/LiffBookingView.vue";
 
@@ -47,6 +48,15 @@ const routes = [
     path: "/about",
     name: "About",
     component: AboutView,
+  },
+
+  /* =========================
+    【姓名學工具】
+  ========================== */
+  {
+    path: "/nameology",
+    name: "Nameology",
+    component: NameologyView,
   },
 
   /* =========================

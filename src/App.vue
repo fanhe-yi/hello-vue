@@ -66,6 +66,7 @@
         <nav class="nav-links">
           <router-link to="/" class="nav-link">首頁</router-link>
           <router-link to="/articles" class="nav-link">文章列表</router-link>
+          <router-link to="/nameology" class="nav-link">姓名學工具</router-link>
           <router-link to="/about" class="nav-link">服務項目</router-link>
           <router-link to="/booking" class="nav-link nav-link-cta">預約論命</router-link>
         </nav>
@@ -88,6 +89,7 @@
           <nav class="mobile-nav" @click="closeMenu">
             <router-link to="/" class="mobile-link">首頁</router-link>
             <router-link to="/articles" class="mobile-link">文章列表</router-link>
+            <router-link to="/nameology" class="mobile-link">姓名學工具</router-link>
             <router-link to="/about" class="mobile-link">服務項目</router-link>
             <router-link to="/booking" class="mobile-link mobile-link-cta">
               預約論命 →

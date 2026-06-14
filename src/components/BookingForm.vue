@@ -218,7 +218,8 @@ export default {
         { id: "ziwei", title: "紫微斗數", price: 1200, unit: "50 分" },
         { id: "bazi", title: "四柱八字", price: 1200, unit: "50 分" },
         { id: "liuyao", title: "文王卦占卜", price: 600, unit: "1 小時" },
-        { id: "fengshui", title: "風水堪輿", price: 10000, unit: "次" },
+        // { id: "fengshui", title: "風水堪輿", price: 10000, unit: "次" }, // 暫停接案，未來想開放時把這行恢復
+        { id: "newborn", title: "新生兒取名", price: 1600, unit: "45 分" },
         { id: "chat_line", title: "姓名鑑定", price: 800, unit: "30 分" },
       ],
       allTimeSlots: [
