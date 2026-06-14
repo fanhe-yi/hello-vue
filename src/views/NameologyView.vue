@@ -56,37 +56,85 @@
         <strong>{{ result.fullName }}</strong>
       </div>
 
-      <div class="stroke-list">
-        <div v-for="item in result.strokes" :key="item.key" class="stroke-item">
-          <span class="stroke-char">{{ item.char }}</span>
-          <span class="stroke-meta">{{ item.label }}</span>
-          <strong>{{ item.stroke }} 畫</strong>
-        </div>
+      <!-- Excel 風格主表 -->
+      <div class="table-wrap">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th class="col-char">字</th>
+              <th class="col-stroke">筆劃</th>
+              <th class="col-calc">加總</th>
+              <th class="col-palace">宮位</th>
+              <th class="col-element">五行</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(row, idx) in result.tableRows"
+              :key="idx"
+              :class="['row-' + row.type, row.palace ? 'has-palace' : 'no-palace']"
+            >
+              <td class="col-char">{{ row.char }}</td>
+              <td class="col-stroke">{{ row.stroke }}</td>
+              <td class="col-calc">
+                <span v-if="row.calc" class="calc-text">{{ row.calc }}</span>
+                <span v-else class="dim">—</span>
+              </td>
+              <td class="col-palace">
+                <span v-if="row.palace" class="palace-tag">
+                  {{ row.palace.label }}
+                </span>
+              </td>
+              <td class="col-element">
+                <span
+                  v-if="row.palace"
+                  :class="['element-badge', `element-${row.palace.element}`]"
+                >
+                  {{ row.palace.element }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="row-destiny">
+              <td colspan="2" class="destiny-label">命宮</td>
+              <td class="col-calc">
+                <span class="calc-text">{{ result.destiny.calc }}</span>
+              </td>
+              <td class="col-palace">
+                <span class="palace-tag palace-destiny">命宮</span>
+              </td>
+              <td class="col-element">
+                <span
+                  :class="['element-badge', `element-${result.destiny.element}`]"
+                >
+                  {{ result.destiny.element }}
+                </span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
-      <div class="palace-grid">
-        <article v-for="palace in result.palaces" :key="palace.key" class="palace-card">
-          <span class="palace-name">{{ palace.label }}</span>
-          <div class="palace-main">
-            <strong>{{ palace.value }}</strong>
-            <span :class="['element-badge', `element-${palace.element}`]">
-              {{ palace.element }}
-            </span>
-          </div>
-          <small>{{ palace.formula }}</small>
-        </article>
-      </div>
-
-      <div class="relation-grid">
-        <article
+      <!-- 五行相生相剋（兩條橫式） -->
+      <div class="relation-strip">
+        <div
           v-for="relation in result.relations"
           :key="relation.key"
-          class="relation-card"
+          class="relation-row"
         >
-          <span>{{ relation.label }}</span>
-          <strong>{{ relation.text }}</strong>
-          <small>{{ relation.from }} → {{ relation.to }}</small>
-        </article>
+          <span class="relation-label">{{ relation.label }}</span>
+          <span class="relation-arrow">
+            <span :class="['element-badge', 'element-' + relation.from]">
+              {{ relation.from }}
+            </span>
+            <span class="arrow">→</span>
+            <span :class="['element-badge', 'element-' + relation.to]">
+              {{ relation.to }}
+            </span>
+          </span>
+          <strong class="relation-text">{{ relation.text }}</strong>
+        </div>
       </div>
     </section>
   </div>
@@ -272,14 +320,125 @@ function buildNameologyResult(mode, entries) {
   }
 
   const normalizedPalaces = palaces.map(withElement);
-  const parents = normalizedPalaces.find((item) => item.key === "parents");
-  const illness = normalizedPalaces.find((item) => item.key === "illness");
-  const children = normalizedPalaces.find((item) => item.key === "children");
+  const palaceByKey = Object.fromEntries(
+    normalizedPalaces.map((p) => [p.key, p]),
+  );
+  const parents = palaceByKey.parents;
+  const illness = palaceByKey.illness;
+  const children = palaceByKey.children;
+  const destiny = palaceByKey.destiny;
+
+  /* =========================================================
+     【Excel 風格表格】每列：字 + 筆劃 + 加總（公式） + 宮位 + 五行
+     ----
+     - "·" 虛字 = "+1" 的視覺化（單姓模式起頭跟結尾用）
+     - calc 欄位以 "16 + 15 = 31" 文字呈現
+     ========================================================= */
+  let tableRows = [];
+
+  if (mode === "singleSurnameDoubleName") {
+    const surname = byKey.surname;
+    const given1 = byKey.given1;
+    const given2 = byKey.given2;
+    tableRows = [
+      { type: "virtual", char: "·", stroke: 1, palace: null },
+      {
+        type: "char",
+        char: surname.char,
+        stroke: surname.stroke,
+        palace: parents,
+        calc: `1 + ${surname.stroke} = ${parents.value}`,
+      },
+      {
+        type: "char",
+        char: given1.char,
+        stroke: given1.stroke,
+        palace: illness,
+        calc: `${surname.stroke} + ${given1.stroke} = ${illness.value}`,
+      },
+      {
+        type: "char",
+        char: given2.char,
+        stroke: given2.stroke,
+        palace: children,
+        calc: `${given1.stroke} + ${given2.stroke} = ${children.value}`,
+      },
+      {
+        type: "virtual",
+        char: "·",
+        stroke: 1,
+        palace: palaceByKey.migration,
+        calc: `${given2.stroke} + 1 = ${palaceByKey.migration.value}`,
+      },
+    ];
+  } else if (mode === "singleSurnameSingleName") {
+    const surname = byKey.surname;
+    const given1 = byKey.given1;
+    tableRows = [
+      { type: "virtual", char: "·", stroke: 1, palace: null },
+      {
+        type: "char",
+        char: surname.char,
+        stroke: surname.stroke,
+        palace: parents,
+        calc: `1 + ${surname.stroke} = ${parents.value}`,
+      },
+      {
+        type: "char",
+        char: given1.char,
+        stroke: given1.stroke,
+        palace: illness,
+        calc: `${surname.stroke} + ${given1.stroke} = ${illness.value}`,
+      },
+      {
+        type: "virtual",
+        char: "·",
+        stroke: 1,
+        palace: children,
+        calc: `${given1.stroke} + 1 = ${children.value}`,
+      },
+    ];
+  } else {
+    const surname1 = byKey.surname1;
+    const surname2 = byKey.surname2;
+    const given1 = byKey.given1;
+    const given2 = byKey.given2;
+    tableRows = [
+      { type: "char", char: surname1.char, stroke: surname1.stroke, palace: null },
+      {
+        type: "char",
+        char: surname2.char,
+        stroke: surname2.stroke,
+        palace: parents,
+        calc: `${surname1.stroke} + ${surname2.stroke} = ${parents.value}`,
+      },
+      {
+        type: "char",
+        char: given1.char,
+        stroke: given1.stroke,
+        palace: illness,
+        calc: `${surname1.stroke} + ${surname2.stroke} + ${given1.stroke} = ${illness.value}`,
+      },
+      {
+        type: "char",
+        char: given2.char,
+        stroke: given2.stroke,
+        palace: children,
+        calc: `${given1.stroke} + ${given2.stroke} = ${children.value}`,
+      },
+    ];
+  }
+
+  /* 命宮數字公式：例如「16 + 15 + 16 = 47」 */
+  const destinyStrokes = entries.map((e) => e.stroke);
+  const destinyCalc = `${destinyStrokes.join(" + ")} = ${destiny.value}`;
 
   return {
     fullName: entries.map((item) => item.char).join(""),
     strokes: entries,
     palaces: normalizedPalaces,
+    destiny: { ...destiny, calc: destinyCalc },
+    tableRows,
     relations: [
       {
         key: "thought",
@@ -580,99 +739,121 @@ export default {
   letter-spacing: 0.08em;
 }
 
-.stroke-list {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+/* ============================================
+   Excel 風格主表
+   ============================================ */
+.table-wrap {
   margin-top: 18px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.stroke-item,
-.palace-card,
-.relation-card {
-  border: 1px solid var(--line);
-  background: rgba(255, 253, 249, 0.58);
-  border-radius: 14px;
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Noto Serif SC", "LXGW WenKai", serif;
 }
 
-.stroke-item {
-  min-height: 92px;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    "char meta"
-    "char value";
-  align-items: center;
-  gap: 2px 12px;
-  padding: 14px;
+.result-table th,
+.result-table td {
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
 }
 
-.stroke-char {
-  grid-area: char;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  background: rgba(185, 58, 50, 0.1);
-  color: var(--seal);
-  font-family: "Noto Serif SC", serif;
-  font-size: 30px;
-  font-weight: 600;
-}
-
-.stroke-meta {
-  grid-area: meta;
-  color: var(--ink-mute);
+.result-table thead th {
   font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-deep);
+  background: rgba(167, 133, 80, 0.06);
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--line);
 }
 
-.stroke-item strong {
-  grid-area: value;
-  font-size: 20px;
+/* 字欄：大紅章感 */
+.result-table .col-char {
+  width: 56px;
+  font-family: "Noto Serif SC", serif;
 }
 
-.palace-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
+.result-table tbody .col-char {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--seal);
 }
 
-.palace-card {
-  min-height: 128px;
-  padding: 16px;
-}
-
-.palace-name,
-.relation-card span {
-  display: block;
+/* "·" 虛字 row 字體淡化 */
+.result-table .row-virtual .col-char {
   color: var(--ink-mute);
-  font-size: 14px;
+  font-size: 18px;
+  opacity: 0.7;
 }
 
-.palace-main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
+.result-table .row-virtual .col-stroke {
+  color: var(--ink-mute);
 }
 
-.palace-main strong {
-  font-size: 32px;
-  line-height: 1;
+/* 筆劃欄 */
+.result-table .col-stroke {
+  width: 58px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* 加總公式 */
+.result-table .col-calc {
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+}
+
+.calc-text {
+  font-family: "Noto Serif SC", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.dim {
+  color: var(--ink-mute);
+  opacity: 0.4;
+}
+
+/* 宮位標籤 */
+.result-table .col-palace {
+  width: 88px;
+}
+
+.palace-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(185, 58, 50, 0.08);
+  border: 1px solid rgba(185, 58, 50, 0.18);
+  color: var(--seal);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* 五行欄 */
+.result-table .col-element {
+  width: 52px;
 }
 
 .element-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 28px;
+  min-width: 32px;
+  height: 26px;
+  padding: 0 8px;
   border-radius: 999px;
   color: #fff;
+  font-size: 14px;
   font-weight: 700;
+  font-family: "Noto Serif SC", serif;
 }
 
 .element-木 { background: #3c8a5f; }
@@ -681,32 +862,98 @@ export default {
 .element-金 { background: #8e7f68; }
 .element-水 { background: #376f91; }
 
-.palace-card small,
-.relation-card small {
-  display: block;
-  margin-top: 12px;
-  color: var(--ink-mute);
-  line-height: 1.5;
+/* 命宮 (tfoot) 視覺強調 */
+.result-table tfoot .row-destiny td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 58, 50, 0.06),
+    rgba(167, 133, 80, 0.04)
+  );
+  border-top: 2px solid var(--line);
+  border-bottom: none;
 }
 
-.relation-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.relation-card {
-  padding: 18px;
-}
-
-.relation-card strong {
-  display: block;
-  margin-top: 10px;
+.destiny-label {
+  font-family: "Noto Serif SC", serif;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--seal);
-  font-size: 24px;
+  letter-spacing: 0.06em;
+  text-align: center;
 }
 
+.palace-destiny {
+  background: linear-gradient(135deg, var(--seal), #962820);
+  color: #fff;
+  border-color: transparent;
+}
+
+.row-destiny .col-calc {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.row-destiny .element-badge {
+  height: 30px;
+  font-size: 15px;
+}
+
+/* ============================================
+   思想 / 行動功能（兩條橫式）
+   ============================================ */
+.relation-strip {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.relation-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 253, 249, 0.7);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.relation-label {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--gold-deep);
+  letter-spacing: 0.08em;
+  min-width: 76px;
+}
+
+.relation-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.relation-arrow .arrow {
+  color: var(--ink-mute);
+  font-size: 18px;
+}
+
+.relation-text {
+  margin-left: auto;
+  font-family: "Noto Serif SC", serif;
+  color: var(--seal);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================
+   RWD (手機)
+   ============================================ */
 @media (max-width: 820px) {
   .nameology-page {
     padding-top: 18px;
@@ -719,10 +966,7 @@ export default {
   }
 
   .mode-tabs,
-  .input-grid,
-  .stroke-list,
-  .palace-grid,
-  .relation-grid {
+  .input-grid {
     grid-template-columns: 1fr;
   }
 
@@ -733,6 +977,61 @@ export default {
   .result-header {
     align-items: start;
     flex-direction: column;
+  }
+
+  /* 表格內距縮小，仍維持單一畫面 */
+  .result-table th,
+  .result-table td {
+    padding: 9px 4px;
+  }
+
+  .result-table .col-char { width: 42px; }
+  .result-table tbody .col-char { font-size: 19px; }
+  .result-table .col-stroke {
+    width: 44px;
+    font-size: 16px;
+  }
+  .result-table .col-calc {
+    font-size: 13px;
+  }
+  .result-table .col-palace {
+    width: 72px;
+  }
+  .palace-tag {
+    padding: 3px 9px;
+    font-size: 12px;
+  }
+  .result-table .col-element {
+    width: 44px;
+  }
+  .element-badge {
+    min-width: 28px;
+    height: 24px;
+    font-size: 13px;
+    padding: 0 6px;
+  }
+
+  .destiny-label {
+    font-size: 14px;
+  }
+
+  .relation-row {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .relation-label {
+    min-width: 64px;
+    font-size: 13px;
+  }
+  .relation-text {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  /* 極窄屏：加總公式換用較短形式 */
+  .result-table .col-calc {
+    font-size: 12px;
   }
 }
 </style>

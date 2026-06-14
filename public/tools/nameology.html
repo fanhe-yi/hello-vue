@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>姓名筆劃計算工具</title>
+    <style>
+      :root {
+        --ink: #2a1f1a;
+        --ink-soft: #4a423b;
+        --ink-mute: #6b6157;
+        --paper: rgba(255, 252, 247, 0.92);
+        --paper-strong: rgba(255, 253, 249, 0.96);
+        --gold: #a78550;
+        --gold-deep: #795b2d;
+        --seal: #b93a32;
+        --seal-deep: #962820;
+        --line: rgba(60, 40, 25, 0.14);
+        --shadow: 0 16px 38px rgba(60, 40, 25, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        min-height: 100vh;
+        background: radial-gradient(
+            ellipse 80% 60% at 0% 0%,
+            rgba(60, 40, 25, 0.06),
+            transparent 55%
+          ),
+          radial-gradient(
+            ellipse 70% 55% at 100% 100%,
+            rgba(167, 133, 80, 0.08),
+            transparent 55%
+          ),
+          linear-gradient(180deg, #faf6ee 0%, #f5ede0 100%);
+        color: var(--ink);
+        font-family: "PingFang TC", "PingFang SC", "Helvetica Neue",
+          "Microsoft JhengHei", "Heiti TC", sans-serif;
+        line-height: 1.6;
+      }
+
+      .page {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 28px 14px 48px;
+      }
+
+      /* Hero */
+      .hero {
+        padding: 22px 6px 24px;
+      }
+      .kicker {
+        display: inline-block;
+        color: var(--gold-deep);
+        font-size: 13px;
+        letter-spacing: 0.22em;
+      }
+      .hero h1 {
+        margin: 8px 0 6px;
+        font-family: "Songti TC", "PingFang TC", "Noto Serif TC", serif;
+        font-size: clamp(28px, 5vw, 44px);
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .hero p {
+        margin: 0;
+        color: var(--ink-mute);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      /* Shell */
+      .tool-shell,
+      .result-shell {
+        background: var(--paper);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 24px;
+        backdrop-filter: blur(10px) saturate(1.08);
+        -webkit-backdrop-filter: blur(10px) saturate(1.08);
+      }
+      .result-shell {
+        margin-top: 18px;
+      }
+
+      /* Mode tabs */
+      .mode-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        padding: 5px;
+        background: rgba(60, 40, 25, 0.06);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        margin-bottom: 18px;
+      }
+      .mode-tab {
+        min-height: 44px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--ink-soft);
+        font: inherit;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .mode-tab:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.55);
+      }
+      .mode-tab.active {
+        background: linear-gradient(135deg, var(--seal), var(--seal-deep));
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(185, 58, 50, 0.25);
+      }
+
+      /* Form */
+      .input-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .char-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .char-field-label {
+        font-size: 13px;
+        color: var(--gold-deep);
+        letter-spacing: 0.12em;
+        font-weight: 600;
+      }
+      .char-field input {
+        width: 100%;
+        padding: 12px 14px;
+        font-size: 18px;
+        font-family: "Songti TC", "PingFang TC", serif;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1.5px solid var(--line);
+        border-radius: 10px;
+        outline: none;
+        text-align: center;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+      .char-field input:focus {
+        border-color: var(--gold);
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(167, 133, 80, 0.16);
+      }
+
+      .form-error {
+        margin: 0 0 12px;
+        padding: 10px 14px;
+        font-size: 14px;
+        color: var(--seal);
+        background: rgba(185, 58, 50, 0.08);
+        border: 1px solid rgba(185, 58, 50, 0.22);
+        border-radius: 10px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .primary-action,
+      .ghost-action {
+        border-radius: 999px;
+        font: inherit;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        padding: 12px 22px;
+        min-height: 46px;
+        transition: all 0.2s ease;
+      }
+      .primary-action {
+        background: linear-gradient(135deg, var(--seal), var(--seal-deep));
+        color: #fff;
+        border: 1px solid var(--seal-deep);
+        box-shadow: 0 6px 16px rgba(185, 58, 50, 0.28);
+        flex: 1;
+        min-width: 140px;
+      }
+      .primary-action:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(185, 58, 50, 0.38);
+        filter: brightness(1.05);
+      }
+      .primary-action:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .ghost-action {
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--ink-soft);
+        border: 1px solid var(--line);
+      }
+      .ghost-action:hover {
+        background: #fff;
+        border-color: var(--gold);
+        color: var(--ink);
+      }
+
+      /* Result header */
+      .result-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+      }
+      .result-label {
+        color: var(--gold-deep);
+        font-size: 13px;
+        letter-spacing: 0.22em;
+      }
+      .result-header strong {
+        font-family: "Songti TC", "PingFang TC", serif;
+        font-size: 26px;
+        color: var(--ink);
+        letter-spacing: 0.06em;
+      }
+
+      /* Excel 風格表格 */
+      .table-wrap {
+        margin-top: 16px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Songti TC", "PingFang TC", "Noto Serif TC", serif;
+      }
+      .result-table th,
+      .result-table td {
+        padding: 10px 8px;
+        text-align: center;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+      }
+      .result-table thead th {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--gold-deep);
+        background: rgba(167, 133, 80, 0.06);
+        letter-spacing: 0.08em;
+        border-bottom: 2px solid var(--line);
+      }
+      .result-table .col-char {
+        width: 56px;
+        font-family: "Songti TC", "PingFang TC", serif;
+      }
+      .result-table tbody .col-char {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--seal);
+      }
+      .result-table .row-virtual .col-char,
+      .result-table .row-virtual .col-stroke {
+        color: var(--ink-mute);
+        opacity: 0.7;
+      }
+      .result-table .row-virtual .col-char {
+        font-size: 18px;
+      }
+      .result-table .col-stroke {
+        width: 58px;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .result-table .col-calc {
+        font-size: 15px;
+        color: var(--ink-soft);
+        font-feature-settings: "tnum";
+        white-space: nowrap;
+        font-family: "PingFang TC", "Helvetica Neue", sans-serif;
+        letter-spacing: 0.02em;
+      }
+      .dim {
+        color: var(--ink-mute);
+        opacity: 0.4;
+      }
+      .result-table .col-palace {
+        width: 88px;
+      }
+      .palace-tag {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(185, 58, 50, 0.08);
+        border: 1px solid rgba(185, 58, 50, 0.18);
+        color: var(--seal);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+      .result-table .col-element {
+        width: 52px;
+      }
+      .element-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 26px;
+        padding: 0 8px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .element-木 {
+        background: #3c8a5f;
+      }
+      .element-火 {
+        background: #bd4b38;
+      }
+      .element-土 {
+        background: #a78550;
+      }
+      .element-金 {
+        background: #8e7f68;
+      }
+      .element-水 {
+        background: #376f91;
+      }
+
+      /* 命宮 row */
+      .result-table tfoot .row-destiny td {
+        padding-top: 16px;
+        padding-bottom: 16px;
+        background: linear-gradient(
+          135deg,
+          rgba(185, 58, 50, 0.06),
+          rgba(167, 133, 80, 0.04)
+        );
+        border-top: 2px solid var(--line);
+        border-bottom: none;
+      }
+      .destiny-label {
+        font-family: "Songti TC", "PingFang TC", serif;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--seal);
+        letter-spacing: 0.06em;
+      }
+      .palace-destiny {
+        background: linear-gradient(135deg, var(--seal), var(--seal-deep));
+        color: #fff;
+        border-color: transparent;
+      }
+      .row-destiny .col-calc {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .row-destiny .element-badge {
+        height: 30px;
+        font-size: 15px;
+      }
+
+      /* 思想 / 行動功能 */
+      .relation-strip {
+        margin-top: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .relation-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 16px;
+        background: rgba(255, 253, 249, 0.7);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        flex-wrap: wrap;
+      }
+      .relation-label {
+        font-family: "Songti TC", "PingFang TC", serif;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--gold-deep);
+        letter-spacing: 0.08em;
+        min-width: 76px;
+      }
+      .relation-arrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .relation-arrow .arrow {
+        color: var(--ink-mute);
+        font-size: 18px;
+      }
+      .relation-text {
+        margin-left: auto;
+        font-family: "Songti TC", "PingFang TC", serif;
+        color: var(--seal);
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      /* Footer */
+      .page-foot {
+        margin-top: 28px;
+        text-align: center;
+        color: var(--ink-mute);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+      }
+
+      /* RWD */
+      @media (max-width: 820px) {
+        .tool-shell,
+        .result-shell {
+          padding: 18px;
+          border-radius: 16px;
+        }
+        .mode-tabs {
+          gap: 4px;
+        }
+        .result-table th,
+        .result-table td {
+          padding: 9px 4px;
+        }
+        .result-table .col-char {
+          width: 42px;
+        }
+        .result-table tbody .col-char {
+          font-size: 19px;
+        }
+        .result-table .col-stroke {
+          width: 44px;
+          font-size: 16px;
+        }
+        .result-table .col-calc {
+          font-size: 13px;
+        }
+        .result-table .col-palace {
+          width: 72px;
+        }
+        .palace-tag {
+          padding: 3px 9px;
+          font-size: 12px;
+        }
+        .result-table .col-element {
+          width: 44px;
+        }
+        .element-badge {
+          min-width: 28px;
+          height: 24px;
+          font-size: 13px;
+          padding: 0 6px;
+        }
+        .destiny-label {
+          font-size: 14px;
+        }
+        .relation-row {
+          gap: 10px;
+          padding: 10px 12px;
+        }
+        .relation-label {
+          min-width: 64px;
+          font-size: 13px;
+        }
+        .relation-text {
+          font-size: 16px;
+        }
+      }
+      @media (max-width: 380px) {
+        .result-table .col-calc {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <span class="kicker">教學工具</span>
+        <h1>姓名筆劃計算</h1>
+        <p>
+          輸入姓名後，依筆劃計算宮位、五行與相生相剋。本工具僅供教學用途。
+        </p>
+      </header>
+
+      <section class="tool-shell">
+        <div class="mode-tabs" id="mode-tabs" role="tablist"></div>
+
+        <form id="name-form" autocomplete="off">
+          <div class="input-grid" id="input-grid"></div>
+          <p id="form-error" class="form-error" hidden role="alert"></p>
+          <div class="actions">
+            <button type="submit" id="calc-btn" class="primary-action">
+              開始計算
+            </button>
+            <button type="button" id="reset-btn" class="ghost-action">
+              清除
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section id="result-shell" class="result-shell" hidden aria-live="polite">
+        <div class="result-header">
+          <span class="result-label">計算結果</span>
+          <strong id="full-name"></strong>
+        </div>
+        <div class="table-wrap">
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th class="col-char">字</th>
+                <th class="col-stroke">筆劃</th>
+                <th class="col-calc">加總</th>
+                <th class="col-palace">宮位</th>
+                <th class="col-element">五行</th>
+              </tr>
+            </thead>
+            <tbody id="result-tbody"></tbody>
+            <tfoot id="result-tfoot"></tfoot>
+          </table>
+        </div>
+        <div class="relation-strip" id="relation-strip"></div>
+      </section>
+
+      <footer class="page-foot">姓名學筆劃工具（教學版）</footer>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* =========================================================
+       設定
+       ========================================================= */
+      const STROKE_API_URL = "https://api.chen-yi.tw/booking/api/stroke";
+      const CACHE_PREFIX = "nameology:stroke:";
+
+      /* =========================================================
+       三種模式
+       ========================================================= */
+      const MODE_OPTIONS = [
+        {
+          value: "singleSurnameDoubleName",
+          label: "單姓雙名",
+          fields: [
+            { key: "surname", label: "姓" },
+            { key: "given1", label: "名一" },
+            { key: "given2", label: "名二" },
+          ],
+        },
+        {
+          value: "singleSurnameSingleName",
+          label: "單姓單名",
+          fields: [
+            { key: "surname", label: "姓" },
+            { key: "given1", label: "名" },
+          ],
+        },
+        {
+          value: "doubleSurnameDoubleName",
+          label: "複姓雙名",
+          fields: [
+            { key: "surname1", label: "姓一" },
+            { key: "surname2", label: "姓二" },
+            { key: "given1", label: "名一" },
+            { key: "given2", label: "名二" },
+          ],
+        },
+      ];
+
+      let currentMode = "singleSurnameDoubleName";
+      let loading = false;
+
+      /* =========================================================
+       輔助函式
+       ========================================================= */
+      function isOneHanChar(value) {
+        const chars = Array.from(String(value || "").trim());
+        return chars.length === 1 && /\p{Script=Han}/u.test(chars[0]);
+      }
+
+      function numberToElement(value) {
+        const tail = value % 10;
+        if (tail === 1 || tail === 2) return "木";
+        if (tail === 3 || tail === 4) return "火";
+        if (tail === 5 || tail === 6) return "土";
+        if (tail === 7 || tail === 8) return "金";
+        return "水";
+      }
+
+      function compareElements(from, to) {
+        if (from === to) return `${from}${to}平`;
+        const generateMap = {
+          木: "火",
+          火: "土",
+          土: "金",
+          金: "水",
+          水: "木",
+        };
+        if (generateMap[from] === to) return `${from}生${to}`;
+        if (generateMap[to] === from) return `${to}生${from}`;
+        const controlMap = { 木: "土", 土: "水", 水: "火", 火: "金", 金: "木" };
+        if (controlMap[from] === to) return `${from}剋${to}`;
+        if (controlMap[to] === from) return `${to}剋${from}`;
+        return "";
+      }
+
+      function readCachedStroke(char) {
+        try {
+          const cached = localStorage.getItem(CACHE_PREFIX + char);
+          const value = Number(cached);
+          return Number.isInteger(value) && value > 0 ? value : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function writeCachedStroke(char, stroke) {
+        try {
+          localStorage.setItem(CACHE_PREFIX + char, String(stroke));
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      async function fetchStroke(char) {
+        const cached = readCachedStroke(char);
+        if (cached) return cached;
+
+        let response;
+        try {
+          response = await fetch(STROKE_API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: char }),
+          });
+        } catch (err) {
+          throw new Error("無法連線到筆劃伺服器，請檢查網路後重試");
+        }
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !Number.isInteger(data.stroke)) {
+          throw new Error(data.error || "筆劃查詢失敗");
+        }
+        writeCachedStroke(char, data.stroke);
+        return data.stroke;
+      }
+
+      /* =========================================================
+       核心：計算結果
+       ========================================================= */
+      function buildNameologyResult(mode, entries) {
+        const byKey = Object.fromEntries(entries.map((it) => [it.key, it]));
+        let palaces = [];
+
+        if (mode === "singleSurnameDoubleName") {
+          const s = byKey.surname.stroke;
+          const g1 = byKey.given1.stroke;
+          const g2 = byKey.given2.stroke;
+          palaces = [
+            { key: "parents", label: "父母宮", value: s + 1 },
+            { key: "illness", label: "疾厄宮", value: s + g1 },
+            { key: "children", label: "子女宮", value: g1 + g2 },
+            { key: "migration", label: "遷移宮", value: g2 + 1 },
+            { key: "destiny", label: "命宮", value: s + g1 + g2 },
+          ];
+        } else if (mode === "singleSurnameSingleName") {
+          const s = byKey.surname.stroke;
+          const g1 = byKey.given1.stroke;
+          palaces = [
+            { key: "parents", label: "父母宮", value: s + 1 },
+            { key: "illness", label: "疾厄宮", value: s + g1 },
+            { key: "children", label: "子女宮", value: g1 + 1 },
+            { key: "destiny", label: "命宮", value: s + g1 },
+          ];
+        } else {
+          const s1 = byKey.surname1.stroke;
+          const s2 = byKey.surname2.stroke;
+          const g1 = byKey.given1.stroke;
+          const g2 = byKey.given2.stroke;
+          palaces = [
+            { key: "parents", label: "父母宮", value: s1 + s2 },
+            { key: "illness", label: "疾厄宮", value: s1 + s2 + g1 },
+            { key: "children", label: "子女宮", value: g1 + g2 },
+            { key: "destiny", label: "命宮", value: s1 + s2 + g1 + g2 },
+          ];
+        }
+
+        const normalized = palaces.map((p) => ({
+          ...p,
+          element: numberToElement(p.value),
+        }));
+        const byKey2 = Object.fromEntries(normalized.map((p) => [p.key, p]));
+        const parents = byKey2.parents;
+        const illness = byKey2.illness;
+        const children = byKey2.children;
+        const destiny = byKey2.destiny;
+
+        // tableRows
+        let tableRows = [];
+        if (mode === "singleSurnameDoubleName") {
+          const s = byKey.surname,
+            g1 = byKey.given1,
+            g2 = byKey.given2;
+          tableRows = [
+            { type: "virtual", char: "·", stroke: 1, palace: null, calc: null },
+            {
+              type: "char",
+              char: s.char,
+              stroke: s.stroke,
+              palace: parents,
+              calc: `1 + ${s.stroke} = ${parents.value}`,
+            },
+            {
+              type: "char",
+              char: g1.char,
+              stroke: g1.stroke,
+              palace: illness,
+              calc: `${s.stroke} + ${g1.stroke} = ${illness.value}`,
+            },
+            {
+              type: "char",
+              char: g2.char,
+              stroke: g2.stroke,
+              palace: children,
+              calc: `${g1.stroke} + ${g2.stroke} = ${children.value}`,
+            },
+            {
+              type: "virtual",
+              char: "·",
+              stroke: 1,
+              palace: byKey2.migration,
+              calc: `${g2.stroke} + 1 = ${byKey2.migration.value}`,
+            },
+          ];
+        } else if (mode === "singleSurnameSingleName") {
+          const s = byKey.surname,
+            g1 = byKey.given1;
+          tableRows = [
+            { type: "virtual", char: "·", stroke: 1, palace: null, calc: null },
+            {
+              type: "char",
+              char: s.char,
+              stroke: s.stroke,
+              palace: parents,
+              calc: `1 + ${s.stroke} = ${parents.value}`,
+            },
+            {
+              type: "char",
+              char: g1.char,
+              stroke: g1.stroke,
+              palace: illness,
+              calc: `${s.stroke} + ${g1.stroke} = ${illness.value}`,
+            },
+            {
+              type: "virtual",
+              char: "·",
+              stroke: 1,
+              palace: children,
+              calc: `${g1.stroke} + 1 = ${children.value}`,
+            },
+          ];
+        } else {
+          const s1 = byKey.surname1,
+            s2 = byKey.surname2,
+            g1 = byKey.given1,
+            g2 = byKey.given2;
+          tableRows = [
+            {
+              type: "char",
+              char: s1.char,
+              stroke: s1.stroke,
+              palace: null,
+              calc: null,
+            },
+            {
+              type: "char",
+              char: s2.char,
+              stroke: s2.stroke,
+              palace: parents,
+              calc: `${s1.stroke} + ${s2.stroke} = ${parents.value}`,
+            },
+            {
+              type: "char",
+              char: g1.char,
+              stroke: g1.stroke,
+              palace: illness,
+              calc: `${s1.stroke} + ${s2.stroke} + ${g1.stroke} = ${illness.value}`,
+            },
+            {
+              type: "char",
+              char: g2.char,
+              stroke: g2.stroke,
+              palace: children,
+              calc: `${g1.stroke} + ${g2.stroke} = ${children.value}`,
+            },
+          ];
+        }
+
+        const destinyCalc = `${entries.map((e) => e.stroke).join(" + ")} = ${
+          destiny.value
+        }`;
+
+        return {
+          fullName: entries.map((e) => e.char).join(""),
+          tableRows,
+          destiny: { ...destiny, calc: destinyCalc },
+          relations: [
+            {
+              key: "thought",
+              label: "思想功能",
+              from: parents.element,
+              to: illness.element,
+              text: compareElements(parents.element, illness.element),
+            },
+            {
+              key: "action",
+              label: "行動功能",
+              from: illness.element,
+              to: children.element,
+              text: compareElements(illness.element, children.element),
+            },
+          ],
+        };
+      }
+
+      /* =========================================================
+       DOM render
+       ========================================================= */
+      const $tabs = document.getElementById("mode-tabs");
+      const $grid = document.getElementById("input-grid");
+      const $form = document.getElementById("name-form");
+      const $error = document.getElementById("form-error");
+      const $calcBtn = document.getElementById("calc-btn");
+      const $resetBtn = document.getElementById("reset-btn");
+      const $resultShell = document.getElementById("result-shell");
+      const $fullName = document.getElementById("full-name");
+      const $tbody = document.getElementById("result-tbody");
+      const $tfoot = document.getElementById("result-tfoot");
+      const $relations = document.getElementById("relation-strip");
+
+      function renderModeTabs() {
+        $tabs.innerHTML = "";
+        MODE_OPTIONS.forEach((opt) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className =
+            "mode-tab" + (opt.value === currentMode ? " active" : "");
+          btn.setAttribute("role", "tab");
+          btn.setAttribute("aria-selected", String(opt.value === currentMode));
+          btn.dataset.mode = opt.value;
+          btn.textContent = opt.label;
+          btn.addEventListener("click", () => setMode(opt.value));
+          $tabs.appendChild(btn);
+        });
+      }
+
+      function renderInputGrid() {
+        $grid.innerHTML = "";
+        const fields = MODE_OPTIONS.find((o) => o.value === currentMode).fields;
+        fields.forEach((f) => {
+          const wrap = document.createElement("label");
+          wrap.className = "char-field";
+
+          const lbl = document.createElement("span");
+          lbl.className = "char-field-label";
+          lbl.textContent = f.label;
+
+          const input = document.createElement("input");
+          input.type = "text";
+          input.name = f.key;
+          input.inputMode = "text";
+          input.autocomplete = "off";
+          input.maxLength = 1;
+          input.setAttribute("aria-label", f.label);
+          input.addEventListener("input", () => {
+            hideError();
+            hideResult();
+          });
+
+          wrap.appendChild(lbl);
+          wrap.appendChild(input);
+          $grid.appendChild(wrap);
+        });
+      }
+
+      function setMode(mode) {
+        if (mode === currentMode) return;
+        currentMode = mode;
+        renderModeTabs();
+        renderInputGrid();
+        hideError();
+        hideResult();
+      }
+
+      function showError(msg) {
+        $error.textContent = msg;
+        $error.hidden = false;
+      }
+      function hideError() {
+        $error.hidden = true;
+        $error.textContent = "";
+      }
+      function hideResult() {
+        $resultShell.hidden = true;
+      }
+
+      function renderResult(result) {
+        $fullName.textContent = result.fullName;
+        $tbody.innerHTML = "";
+        $tfoot.innerHTML = "";
+        $relations.innerHTML = "";
+
+        result.tableRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.className =
+            "row-" + row.type + (row.palace ? " has-palace" : " no-palace");
+          tr.innerHTML = `
+          <td class="col-char">${escapeHTML(row.char)}</td>
+          <td class="col-stroke">${row.stroke}</td>
+          <td class="col-calc">${
+            row.calc
+              ? `<span class="calc-text">${escapeHTML(row.calc)}</span>`
+              : '<span class="dim">—</span>'
+          }</td>
+          <td class="col-palace">${
+            row.palace
+              ? `<span class="palace-tag">${escapeHTML(
+                  row.palace.label,
+                )}</span>`
+              : ""
+          }</td>
+          <td class="col-element">${
+            row.palace
+              ? `<span class="element-badge element-${row.palace.element}">${row.palace.element}</span>`
+              : ""
+          }</td>
+        `;
+          $tbody.appendChild(tr);
+        });
+
+        const tfootTr = document.createElement("tr");
+        tfootTr.className = "row-destiny";
+        tfootTr.innerHTML = `
+        <td colspan="2" class="destiny-label">命宮</td>
+        <td class="col-calc"><span class="calc-text">${escapeHTML(
+          result.destiny.calc,
+        )}</span></td>
+        <td class="col-palace"><span class="palace-tag palace-destiny">命宮</span></td>
+        <td class="col-element"><span class="element-badge element-${
+          result.destiny.element
+        }">${result.destiny.element}</span></td>
+      `;
+        $tfoot.appendChild(tfootTr);
+
+        result.relations.forEach((r) => {
+          const row = document.createElement("div");
+          row.className = "relation-row";
+          row.innerHTML = `
+          <span class="relation-label">${escapeHTML(r.label)}</span>
+          <span class="relation-arrow">
+            <span class="element-badge element-${r.from}">${r.from}</span>
+            <span class="arrow">→</span>
+            <span class="element-badge element-${r.to}">${r.to}</span>
+          </span>
+          <strong class="relation-text">${escapeHTML(r.text)}</strong>
+        `;
+          $relations.appendChild(row);
+        });
+
+        $resultShell.hidden = false;
+        $resultShell.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function escapeHTML(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[c]),
+        );
+      }
+
+      /* =========================================================
+       表單送出
+       ========================================================= */
+      async function handleSubmit(evt) {
+        evt.preventDefault();
+        hideError();
+        hideResult();
+
+        const fields = MODE_OPTIONS.find((o) => o.value === currentMode).fields;
+        const inputs = $form.querySelectorAll("input");
+        const chars = {};
+        inputs.forEach((inp) => {
+          chars[inp.name] = inp.value.trim();
+        });
+
+        // validate
+        for (const f of fields) {
+          if (!isOneHanChar(chars[f.key])) {
+            showError(`${f.label} 請輸入一個中文字`);
+            return;
+          }
+        }
+
+        loading = true;
+        $calcBtn.disabled = true;
+        $calcBtn.textContent = "計算中…";
+
+        try {
+          const entries = [];
+          for (const f of fields) {
+            const char = Array.from(chars[f.key])[0];
+            const stroke = await fetchStroke(char);
+            entries.push({ key: f.key, label: f.label, char, stroke });
+          }
+          const result = buildNameologyResult(currentMode, entries);
+          renderResult(result);
+        } catch (err) {
+          showError(err.message || "筆劃查詢失敗，請稍後再試");
+        } finally {
+          loading = false;
+          $calcBtn.disabled = false;
+          $calcBtn.textContent = "開始計算";
+        }
+      }
+
+      function handleReset() {
+        $form.reset();
+        hideError();
+        hideResult();
+      }
+
+      /* =========================================================
+       啟動
+       ========================================================= */
+      renderModeTabs();
+      renderInputGrid();
+      $form.addEventListener("submit", handleSubmit);
+      $resetBtn.addEventListener("click", handleReset);
+    </script>
+  </body>
+</html>
