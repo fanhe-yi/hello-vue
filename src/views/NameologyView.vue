@@ -75,7 +75,12 @@
               :class="['row-' + row.type, row.palace ? 'has-palace' : 'no-palace']"
             >
               <td class="col-char">{{ row.char }}</td>
-              <td class="col-stroke">{{ row.stroke }}</td>
+              <td class="col-stroke">
+                {{ row.stroke }}
+                <span v-if="typeof row.kangxiAlt === 'number'" class="kangxi-alt">
+                  康熙 {{ row.kangxiAlt }}
+                </span>
+              </td>
               <td class="col-calc">
                 <span v-if="row.calc" class="calc-text">{{ row.calc }}</span>
                 <span v-else class="dim">—</span>
@@ -153,6 +158,7 @@
 const API_BASE_URL =
   process.env.VUE_APP_API_BASE_URL || "http://localhost:3000";
 const STROKE_API_FALLBACK_URL = `${API_BASE_URL}/api/stroke`;
+const STROKE_API_KANGXI_URL = `${API_BASE_URL}/api/stroke-kangxi`;
 const MOEDICT_URL_PREFIX = "https://www.moedict.tw/a/";
 const CACHE_PREFIX = "nameology:stroke:";
 
@@ -251,19 +257,26 @@ function compareElements(from, to) {
   return "";
 }
 
-function readCachedStroke(char) {
+function readCachedStrokeFull(char) {
   try {
-    const cached = window.localStorage.getItem(`${CACHE_PREFIX}${char}`);
-    const value = Number(cached);
-    return Number.isInteger(value) && value > 0 ? value : null;
+    const raw = window.localStorage.getItem(`${CACHE_PREFIX}${char}`);
+    if (!raw) return null;
+    // 舊版只存純數字字串，向後相容
+    if (/^\d+$/.test(raw)) return { stroke: Number(raw), kangxiAlt: null };
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.stroke === "number" && parsed.stroke > 0) return parsed;
+    return null;
   } catch (err) {
     return null;
   }
 }
 
-function writeCachedStroke(char, stroke) {
+function writeCachedStrokeFull(char, value) {
   try {
-    window.localStorage.setItem(`${CACHE_PREFIX}${char}`, String(stroke));
+    window.localStorage.setItem(
+      `${CACHE_PREFIX}${char}`,
+      JSON.stringify(value),
+    );
   } catch (err) {
     // 快取失敗不影響計算。
   }
@@ -280,6 +293,17 @@ async function fetchStrokeFromMoedict(char) {
   return d.n + radK;
 }
 
+async function fetchStrokeFromKangxi(char) {
+  const res = await fetch(STROKE_API_KANGXI_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: char }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json().catch(() => ({}));
+  return typeof data.stroke === "number" ? data.stroke : null;
+}
+
 async function fetchStrokeFromFallback(char) {
   const res = await fetch(STROKE_API_FALLBACK_URL, {
     method: "POST",
@@ -293,25 +317,28 @@ async function fetchStrokeFromFallback(char) {
   return data.stroke;
 }
 
-async function fetchStroke(char) {
-  const cached = readCachedStroke(char);
+/* 回傳 { stroke, kangxiAlt }；kangxiAlt 為 null 表示康熙跟 stroke 一致或查不到 */
+async function fetchStrokeWithKangxi(char) {
+  const cached = readCachedStrokeFull(char);
   if (cached) return cached;
 
-  // 1) 主路：moedict（fast）
-  try {
-    const stroke = await fetchStrokeFromMoedict(char);
-    if (stroke != null) {
-      writeCachedStroke(char, stroke);
-      return stroke;
-    }
-  } catch (e) {
-    // 網路 / CORS / parse 失敗 → fall through
-  }
+  // 並行：moedict 主算 + 後端 CSV 康熙比對
+  const [primary, kangxi] = await Promise.all([
+    fetchStrokeFromMoedict(char).catch(() => null),
+    fetchStrokeFromKangxi(char).catch(() => null),
+  ]);
 
-  // 2) Fallback：自家後端 superiorapis 代理
-  const stroke = await fetchStrokeFromFallback(char);
-  writeCachedStroke(char, stroke);
-  return stroke;
+  // 主數字：moedict → fallback superiorapis
+  const stroke =
+    primary != null ? primary : await fetchStrokeFromFallback(char);
+
+  const result = {
+    stroke,
+    kangxiAlt:
+      typeof kangxi === "number" && kangxi !== stroke ? kangxi : null,
+  };
+  writeCachedStrokeFull(char, result);
+  return result;
 }
 
 function withElement(palace) {
@@ -400,6 +427,7 @@ function buildNameologyResult(mode, entries) {
         type: "char",
         char: surname.char,
         stroke: surname.stroke,
+        kangxiAlt: surname.kangxiAlt,
         palace: parents,
         calc: `1 + ${surname.stroke} = ${parents.value}`,
       },
@@ -407,6 +435,7 @@ function buildNameologyResult(mode, entries) {
         type: "char",
         char: given1.char,
         stroke: given1.stroke,
+        kangxiAlt: given1.kangxiAlt,
         palace: illness,
         calc: `${surname.stroke} + ${given1.stroke} = ${illness.value}`,
       },
@@ -414,6 +443,7 @@ function buildNameologyResult(mode, entries) {
         type: "char",
         char: given2.char,
         stroke: given2.stroke,
+        kangxiAlt: given2.kangxiAlt,
         palace: children,
         calc: `${given1.stroke} + ${given2.stroke} = ${children.value}`,
       },
@@ -434,6 +464,7 @@ function buildNameologyResult(mode, entries) {
         type: "char",
         char: surname.char,
         stroke: surname.stroke,
+        kangxiAlt: surname.kangxiAlt,
         palace: parents,
         calc: `1 + ${surname.stroke} = ${parents.value}`,
       },
@@ -441,6 +472,7 @@ function buildNameologyResult(mode, entries) {
         type: "char",
         char: given1.char,
         stroke: given1.stroke,
+        kangxiAlt: given1.kangxiAlt,
         palace: illness,
         calc: `${surname.stroke} + ${given1.stroke} = ${illness.value}`,
       },
@@ -458,11 +490,12 @@ function buildNameologyResult(mode, entries) {
     const given1 = byKey.given1;
     const given2 = byKey.given2;
     tableRows = [
-      { type: "char", char: surname1.char, stroke: surname1.stroke, palace: null },
+      { type: "char", char: surname1.char, stroke: surname1.stroke, kangxiAlt: surname1.kangxiAlt, palace: null },
       {
         type: "char",
         char: surname2.char,
         stroke: surname2.stroke,
+        kangxiAlt: surname2.kangxiAlt,
         palace: parents,
         calc: `${surname1.stroke} + ${surname2.stroke} = ${parents.value}`,
       },
@@ -470,6 +503,7 @@ function buildNameologyResult(mode, entries) {
         type: "char",
         char: given1.char,
         stroke: given1.stroke,
+        kangxiAlt: given1.kangxiAlt,
         palace: illness,
         calc: `${surname1.stroke} + ${surname2.stroke} + ${given1.stroke} = ${illness.value}`,
       },
@@ -477,6 +511,7 @@ function buildNameologyResult(mode, entries) {
         type: "char",
         char: given2.char,
         stroke: given2.stroke,
+        kangxiAlt: given2.kangxiAlt,
         palace: children,
         calc: `${given1.stroke} + ${given2.stroke} = ${children.value}`,
       },
@@ -578,12 +613,12 @@ export default {
 
       this.loading = true;
       try {
-        // 並行查所有字（moedict + fallback 都共用快取）
+        // 並行查所有字（moedict + 後端康熙 CSV 同時打）
         const entries = await Promise.all(
           this.activeFields.map(async (field) => {
             const char = Array.from(this.chars[field.key].trim())[0];
-            const stroke = await fetchStroke(char);
-            return { key: field.key, label: field.label, char, stroke };
+            const { stroke, kangxiAlt } = await fetchStrokeWithKangxi(char);
+            return { key: field.key, label: field.label, char, stroke, kangxiAlt };
           })
         );
         this.result = buildNameologyResult(this.mode, entries);
@@ -856,6 +891,18 @@ export default {
   font-size: 18px;
   font-weight: 600;
   color: var(--ink);
+}
+
+/* 康熙字典提示：主數字下方紅色小字 */
+.kangxi-alt {
+  display: block;
+  margin-top: 2px;
+  font-family: "PingFang TC", "Helvetica Neue", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--seal);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
 }
 
 /* 加總公式 */
