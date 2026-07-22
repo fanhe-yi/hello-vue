@@ -51,10 +51,12 @@ const routes = [
   },
 
   /* =========================
-    【姓名學工具】
+    【姓名學工具 - 私人隱藏路徑】
+    - 不進 nav / sitemap / 公開連結
+    - user 自己記網址私下用
   ========================== */
   {
-    path: "/nameology",
+    path: "/tools/nameology",
     name: "Nameology",
     component: NameologyView,
   },
