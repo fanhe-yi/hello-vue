@@ -192,6 +192,8 @@ function ensureDir(filePath) {
     ========================== */
     "/",
     "/about",
+    "/tools",
+    "/tools/liuyao",
     "/articles",
     "/tools/nameology",
 

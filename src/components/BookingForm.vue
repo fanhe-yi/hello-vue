@@ -207,7 +207,8 @@
 
 <script>
 const API_BASE_URL =
-  process.env.VUE_APP_API_BASE_URL || "http://localhost:4000";
+  process.env.VUE_APP_API_BASE_URL || "http://localhost:3000";
+const LIUYAO_CONTEXT_KEY = "liuyao_paid_context";
 
 export default {
   name: "BookingForm",
@@ -230,6 +231,8 @@ export default {
       slotsForSelectedDate: [],
       form: {
         serviceId: "",
+        source: "",
+        liuyaoContext: null,
         name: "",
         contact: "",
         email: "",
@@ -342,9 +345,15 @@ export default {
           alert(result.message);
           return;
         }
+        if (result.requiresPayment && result.paymentUrl) {
+          window.location.href = result.paymentUrl;
+          return;
+        }
         this.submitSuccess = true;
         this.form = {
           serviceId: "",
+          source: "",
+          liuyaoContext: null,
           name: "",
           contact: "",
           email: "",
@@ -366,8 +375,40 @@ export default {
         this.loading = false;
       }
     },
+    applyRoutePrefill() {
+      const query = this.$route?.query || {};
+      if (query.serviceId && this.services.some((s) => s.id === query.serviceId)) {
+        this.form.serviceId = query.serviceId;
+      }
+      if (query.source === "liuyao_web_free_cta") {
+        try {
+          const raw = sessionStorage.getItem(LIUYAO_CONTEXT_KEY);
+          const context = raw ? JSON.parse(raw) : null;
+          if (context && context.topicText && context.hexCode) {
+            this.form.source = "liuyao_web_free_cta";
+            this.form.liuyaoContext = context;
+            const genderText = context.gender === "female" ? "女命" : "男命";
+            const timeText =
+              context.timeMode === "custom"
+                ? String(context.customTime || "").replace("T", " ")
+                : "現在時間";
+            const prefill = [
+              "網頁六爻卜卦後預約老師解卦",
+              `問題：${context.topicText}`,
+              `性別：${genderText}`,
+              `起卦時間：${timeText}`,
+              `起卦碼：${context.hexCode}`,
+            ].join("\n");
+            this.form.note = this.form.note ? `${this.form.note}\n\n${prefill}` : prefill;
+          }
+        } catch (err) {
+          console.error("讀取六爻預約資料失敗：", err);
+        }
+      }
+    },
   },
   mounted() {
+    this.applyRoutePrefill();
     this.fetchBookings();
   },
 };

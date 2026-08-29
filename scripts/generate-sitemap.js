@@ -48,6 +48,8 @@ const FALLBACK_INDEX = path.join(
 const STATIC_ROUTES = [
   { path: "/", priority: 1.0, changefreq: "weekly" },
   { path: "/about/", priority: 0.8, changefreq: "monthly" },
+  { path: "/tools/", priority: 0.8, changefreq: "monthly" },
+  { path: "/tools/liuyao/", priority: 0.9, changefreq: "monthly" },
   { path: "/booking", priority: 0.9, changefreq: "monthly" },
   { path: "/articles/", priority: 0.7, changefreq: "daily" },
 ];

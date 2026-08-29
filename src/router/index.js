@@ -12,6 +12,8 @@ import BookingForm from "../components/BookingForm.vue";
 import HomeView from "../views/HomeView.vue";
 import AboutView from "../views/AboutView.vue";
 import NameologyView from "../views/NameologyView.vue";
+import ToolsView from "../views/ToolsView.vue";
+import LiuYaoToolView from "../views/LiuYaoToolView.vue";
 import AdminUnavailable from "@/views/AdminUnavailable.vue";
 import LiffBookingView from "@/views/LiffBookingView.vue";
 
@@ -48,6 +50,18 @@ const routes = [
     path: "/about",
     name: "About",
     component: AboutView,
+  },
+
+  {
+    path: "/tools",
+    name: "Tools",
+    component: ToolsView,
+  },
+
+  {
+    path: "/tools/liuyao",
+    name: "LiuYaoTool",
+    component: LiuYaoToolView,
   },
 
   /* =========================
