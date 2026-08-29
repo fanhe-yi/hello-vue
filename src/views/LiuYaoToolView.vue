@@ -1,59 +1,93 @@
 <template>
   <div class="liuyao-page">
-    <section class="liuyao-shell">
-      <aside class="flow-side">
+    <section class="liuyao-hero">
+      <div>
         <p class="eyebrow">LIU YAO</p>
         <h1>六爻卜卦</h1>
         <p class="intro">
           一卦只問一件事。依序完成靜心、請神、擲六爻與退神後，系統會產出卦盤與簡易解讀。
         </p>
-        <div class="step-list" aria-label="流程進度">
-          <template v-for="(item, idx) in stepItems" :key="item.key">
-            <span :class="['step-pill', { active: item.key === step, done: item.done }]">
-              {{ item.label }}
-            </span>
-            <span v-if="idx < stepItems.length - 1" class="step-arrow" aria-hidden="true">›</span>
-          </template>
-        </div>
-      </aside>
+      </div>
+    </section>
 
-      <main class="tool-surface">
-        <section v-if="step === 'intro'" class="panel">
-          <h2>起卦前準備</h2>
+    <nav class="step-list" aria-label="流程進度">
+      <template v-for="(item, idx) in stepItems" :key="item.key">
+        <button
+          type="button"
+          :class="['step-pill', { active: item.active, done: item.done }]"
+          :disabled="!item.accessible"
+          @click="goStep(item.key)"
+        >
+          {{ item.label }}
+        </button>
+        <span v-if="idx < stepItems.length - 1" class="step-arrow" aria-hidden="true">›</span>
+      </template>
+    </nav>
+
+    <main class="flow-main">
+      <section id="liuyao-step-intro" :class="flowClass('intro')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">01</span>
+            <h2>起卦前準備</h2>
+          </div>
+          <span class="section-state">{{ stateLabel('intro') }}</span>
+        </div>
+        <div class="flow-body">
           <p>
             請先確認這次只問一件事。問題越清楚，卦盤越能聚焦；完成退神後，系統會整理卦盤與方向摘要。
           </p>
-          <button class="primary-btn" type="button" @click="step = 'topic'">
+          <button class="primary-btn" type="button" @click="advanceTo('topic')">
             開始
           </button>
-        </section>
+        </div>
+      </section>
 
-        <section v-else-if="step === 'topic'" class="panel">
-          <h2>輸入問題</h2>
+      <section id="liuyao-step-topic" :class="flowClass('topic')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">02</span>
+            <h2>輸入問題</h2>
+          </div>
+          <button v-if="isStepDone('topic')" class="text-btn" type="button" @click="goStep('topic')">修改</button>
+        </div>
+        <p v-if="isStepDone('topic')" class="summary-text">{{ form.topicText }}</p>
+        <div v-else class="flow-body">
           <label class="field-label" for="topic">這次只問一件事</label>
           <textarea
             id="topic"
             v-model.trim="form.topicText"
             class="input textarea"
+            :disabled="isStepLocked('topic')"
             maxlength="120"
             placeholder="例如：這段關係接下來會怎麼發展？"
           ></textarea>
           <p class="field-hint">{{ form.topicText.length }} / 120</p>
           <div class="actions">
-            <button class="ghost-btn" type="button" @click="step = 'intro'">返回</button>
-            <button class="primary-btn" type="button" :disabled="!form.topicText" @click="step = 'gender'">
+            <button class="ghost-btn" type="button" @click="goStep('intro')">返回</button>
+            <button class="primary-btn" type="button" :disabled="!form.topicText" @click="advanceTo('gender')">
               下一步
             </button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section v-else-if="step === 'gender'" class="panel">
-          <h2>選擇性別</h2>
+      <section id="liuyao-step-gender" :class="flowClass('gender')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">03</span>
+            <h2>選擇性別</h2>
+          </div>
+          <button v-if="isStepDone('gender')" class="text-btn" type="button" @click="goStep('gender')">修改</button>
+        </div>
+        <p v-if="isStepDone('gender')" class="summary-text">{{ genderLabel }}</p>
+        <div v-else class="flow-body">
           <div class="segmented">
             <button
               v-for="g in genders"
               :key="g.value"
               type="button"
+              :disabled="isStepLocked('gender')"
               :class="{ selected: form.gender === g.value }"
               @click="form.gender = g.value"
             >
@@ -61,16 +95,26 @@
             </button>
           </div>
           <div class="actions">
-            <button class="ghost-btn" type="button" @click="step = 'topic'">返回</button>
-            <button class="primary-btn" type="button" @click="step = 'time'">下一步</button>
+            <button class="ghost-btn" type="button" @click="goStep('topic')">返回</button>
+            <button class="primary-btn" type="button" @click="advanceTo('time')">下一步</button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section v-else-if="step === 'time'" class="panel">
-          <h2>起卦時間</h2>
+      <section id="liuyao-step-time" :class="flowClass('time')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">04</span>
+            <h2>起卦時間</h2>
+          </div>
+          <button v-if="isStepDone('time')" class="text-btn" type="button" @click="goStep('time')">修改</button>
+        </div>
+        <p v-if="isStepDone('time')" class="summary-text">{{ timeLabel }}</p>
+        <div v-else class="flow-body">
           <div class="segmented">
             <button
               type="button"
+              :disabled="isStepLocked('time')"
               :class="{ selected: form.timeMode === 'now' }"
               @click="selectTimeMode('now')"
             >
@@ -78,6 +122,7 @@
             </button>
             <button
               type="button"
+              :disabled="isStepLocked('time')"
               :class="{ selected: form.timeMode === 'custom' }"
               @click="selectTimeMode('custom')"
             >
@@ -96,28 +141,46 @@
           />
           <p class="field-hint">{{ timeLabel }}</p>
           <div class="actions">
-            <button class="ghost-btn" type="button" @click="step = 'gender'">返回</button>
-            <button class="primary-btn" type="button" :disabled="form.timeMode === 'custom' && !form.customTime" @click="step = 'calm'">
+            <button class="ghost-btn" type="button" @click="goStep('gender')">返回</button>
+            <button class="primary-btn" type="button" :disabled="form.timeMode === 'custom' && !form.customTime" @click="advanceTo('calm')">
               下一步
             </button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section v-else-if="step === 'calm'" class="panel calm-panel">
-          <h2>靜心</h2>
+      <section id="liuyao-step-calm" :class="flowClass('calm')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">05</span>
+            <h2>靜心</h2>
+          </div>
+          <span class="section-state">{{ stateLabel('calm') }}</span>
+        </div>
+        <div class="flow-body">
           <p>把問題留在心裡，深呼吸三次。心穩之後，再進入請神文。</p>
-          <button class="primary-btn" type="button" @click="step = 'prayer'">
+          <button class="primary-btn" type="button" :disabled="isStepLocked('calm')" @click="advanceTo('prayer')">
             我已準備好
           </button>
-        </section>
+        </div>
+      </section>
 
-        <section v-else-if="step === 'prayer'" class="panel">
-          <h2>選擇請神文</h2>
+      <section id="liuyao-step-prayer" :class="flowClass('prayer')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">06</span>
+            <h2>選擇請神文</h2>
+          </div>
+          <button v-if="isStepDone('prayer')" class="text-btn" type="button" @click="goStep('prayer')">修改</button>
+        </div>
+        <p v-if="isStepDone('prayer')" class="summary-text">{{ currentPrayer.label }}</p>
+        <div v-else class="flow-body">
           <div class="prayer-grid">
             <button
               v-for="p in prayers"
               :key="p.key"
               type="button"
+              :disabled="isStepLocked('prayer')"
               :class="['prayer-option', { selected: form.prayerKey === p.key }]"
               @click="form.prayerKey = p.key"
             >
@@ -132,75 +195,125 @@
           </article>
 
           <div class="actions">
-            <button class="ghost-btn" type="button" @click="step = 'calm'">返回</button>
+            <button class="ghost-btn" type="button" @click="goStep('calm')">返回</button>
             <button class="primary-btn" type="button" @click="startRoll">
               我已請神
             </button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section v-else-if="step === 'roll'" class="panel">
-          <h2>第 {{ currentYaoIndex }} 爻 · 擲幣結果</h2>
-          <p>請依照你實際擲出的結果選擇，只看三枚硬幣的人頭數。</p>
-          <ProgressBar :count="form.hexCode.length" />
-          <div class="coin-grid">
-            <button
-              v-for="coin in coinChoices"
-              :key="coin.value"
-              type="button"
-              class="coin-choice"
-              @click="recordYao(coin.value)"
-            >
-              <img :src="coin.img" :alt="coin.label" />
-              <span>{{ coin.label }}</span>
-            </button>
+      <section id="liuyao-step-roll" :class="flowClass('roll')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">07</span>
+            <h2>擲爻</h2>
           </div>
-        </section>
+          <span class="section-state">{{ form.hexCode.length }} / 6</span>
+        </div>
 
-        <section v-else-if="step === 'mid'" class="panel calm-panel">
-          <h2>下卦已成</h2>
-          <ProgressBar :count="3" />
-          <p>請默念：「內卦三爻吉凶未判，再求外卦三爻，以成全卦。」</p>
-          <button class="primary-btn" type="button" @click="step = 'roll'">
-            念完後，進入第四爻
-          </button>
-        </section>
+        <div class="yao-track" aria-label="擲爻進度">
+          <template v-for="(item, idx) in rollMilestones" :key="item.key">
+            <span :class="['yao-stage', { active: item.active, done: item.done }]">
+              {{ item.label }}
+            </span>
+            <span v-if="idx < rollMilestones.length - 1" class="step-arrow" aria-hidden="true">›</span>
+          </template>
+        </div>
 
-        <section v-else-if="step === 'sendoff'" class="panel calm-panel">
-          <h2>六爻俱全</h2>
-          <ProgressBar :count="6" />
+        <div class="roll-layout">
+          <div class="yao-stack" aria-label="六爻暫存">
+            <div
+              v-for="row in yaoPreviewRows"
+              :key="row.index"
+              :class="['yao-row', { filled: row.filled, current: row.current }]"
+            >
+              <span>{{ row.label }}</span>
+              <strong>{{ row.text }}</strong>
+            </div>
+          </div>
+
+          <div class="roll-control">
+            <template v-if="step === 'roll' && form.hexCode.length < 6">
+              <h3>{{ currentYaoLabel }} · 擲幣結果</h3>
+              <p>請依照實際擲出的三枚硬幣，選擇「正面」出現的數量。</p>
+              <p class="field-hint">正面 = 人頭；另一面 = 反面。</p>
+              <div class="coin-grid">
+                <button
+                  v-for="coin in coinChoices"
+                  :key="coin.value"
+                  type="button"
+                  class="coin-choice"
+                  @click="recordYao(coin.value)"
+                >
+                  <strong>{{ coin.label }}</strong>
+                  <span>{{ coin.desc }}</span>
+                </button>
+              </div>
+            </template>
+
+            <template v-else-if="step === 'mid'">
+              <h3>中場</h3>
+              <p>請默念：「內卦三爻吉凶未判，再求外卦三爻，以成全卦。」</p>
+              <button class="primary-btn" type="button" @click="completeMid">
+                念完後，進入第四爻
+              </button>
+            </template>
+
+            <template v-else-if="isStepDone('roll')">
+              <h3>六爻已擲完</h3>
+              <p class="hex-code">起卦碼：{{ form.hexCode }}</p>
+            </template>
+
+            <template v-else>
+              <h3>尚未開始擲爻</h3>
+              <p>完成前面的問題、時間、靜心與請神後，會從初爻開始。</p>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <section id="liuyao-step-sendoff" :class="flowClass('sendoff')">
+        <div class="flow-head">
+          <div>
+            <span class="step-no">08</span>
+            <h2>退神</h2>
+          </div>
+          <span class="section-state">{{ stateLabel('sendoff') }}</span>
+        </div>
+        <div class="flow-body">
           <p class="hex-code">起卦碼：{{ form.hexCode }}</p>
           <p>請念退神文：「於今六爻已成，吉凶分判。弟子在此叩謝，十方世界諸佛菩薩。」</p>
-          <button class="primary-btn" type="button" @click="submitFreeReading">
+          <button class="primary-btn" type="button" :disabled="isStepLocked('sendoff')" @click="submitFreeReading">
             收卦 · 退神
           </button>
-        </section>
+        </div>
+      </section>
 
-        <section v-else-if="step === 'loading'" class="panel calm-panel">
+      <section v-if="step === 'loading'" class="flow-panel active calm-panel">
           <h2>卦已立</h2>
           <p>正在整理卦盤與簡易解讀，請稍候。</p>
           <div class="loader" aria-label="載入中"></div>
-        </section>
+      </section>
 
-        <section v-else-if="step === 'limit'" class="panel calm-panel">
+      <section v-if="step === 'limit'" class="flow-panel active calm-panel">
           <h2>今日免費次數已用完</h2>
           <p>今日體驗次數已用完。若這一卦很重要，可以直接預約老師正式解卦。</p>
           <button class="primary-btn" type="button" @click="goBooking">
             預約老師解卦
           </button>
-        </section>
+      </section>
 
-        <section v-else-if="step === 'error'" class="panel calm-panel">
+      <section v-if="step === 'error'" class="flow-panel active calm-panel">
           <h2>暫時無法完成解讀</h2>
           <p>{{ errorMessage }}</p>
           <button class="primary-btn" type="button" @click="resetFlow">
             重新開始
           </button>
-        </section>
-      </main>
-    </section>
+      </section>
+    </main>
 
-    <section v-if="result" class="result-section">
+    <section v-if="result" id="liuyao-step-result" class="result-section">
       <div class="result-head">
         <div>
           <p class="eyebrow">RESULT</p>
@@ -323,6 +436,19 @@ const API_BASE_URL = process.env.VUE_APP_API_BASE_URL || "http://localhost:3000"
 const STORAGE_KEY = "fanhe_liuyao_visitor_id";
 const BOOKING_CONTEXT_KEY = "liuyao_paid_context";
 const FW_SPACE = "　";
+const FLOW_ORDER = ["intro", "topic", "gender", "time", "calm", "prayer", "roll", "sendoff", "result"];
+const FLOW_LABELS = {
+  intro: "介紹",
+  topic: "問題",
+  gender: "性別",
+  time: "時間",
+  calm: "靜心",
+  prayer: "請神",
+  roll: "擲爻",
+  sendoff: "退神",
+  result: "結果",
+};
+const YAO_LABELS = ["初爻", "二爻", "三爻", "四爻", "五爻", "六爻"];
 
 const WUXING_MAP = {
   甲: "木", 乙: "木", 丙: "火", 丁: "火",
@@ -451,18 +577,20 @@ function normalizeLiushen(s) {
   return map[t] || t;
 }
 
-const ProgressBar = {
-  props: { count: { type: Number, required: true } },
-  template: `
-    <div class="progress-row" aria-label="六爻進度">
-      <span v-for="n in 6" :key="n" :class="{ filled: n <= count }"></span>
-    </div>
-  `,
-};
+function flowIndexOf(step) {
+  if (step === "mid") return FLOW_ORDER.indexOf("roll");
+  if (step === "loading" || step === "limit" || step === "error") return FLOW_ORDER.indexOf("sendoff");
+  return FLOW_ORDER.indexOf(step);
+}
+
+function yaoChoiceText(value) {
+  const n = Number(value);
+  if (Number.isNaN(n)) return "未擲";
+  return `${n} 個正面`;
+}
 
 export default {
   name: "LiuYaoToolView",
-  components: { ProgressBar },
   data() {
     return {
       step: "intro",
@@ -523,19 +651,30 @@ export default {
         },
       ],
       coinChoices: [
-        { value: "3", label: "三個人頭", img: "/liuyao/heads_3-2.jpg" },
-        { value: "2", label: "兩個人頭", img: "/liuyao/heads_2-2.jpg" },
-        { value: "1", label: "一個人頭", img: "/liuyao/heads_1-2.jpg" },
-        { value: "0", label: "零個人頭", img: "/liuyao/heads_0-2.jpg" },
+        { value: "0", label: "0 個正面", desc: "三枚皆反面" },
+        { value: "1", label: "1 個正面", desc: "一正二反" },
+        { value: "2", label: "2 個正面", desc: "二正一反" },
+        { value: "3", label: "3 個正面", desc: "三枚皆正面" },
       ],
     };
   },
   computed: {
+    activeFlowIndex() {
+      const idx = flowIndexOf(this.step);
+      if (this.result) return FLOW_ORDER.indexOf("result");
+      return idx >= 0 ? idx : 0;
+    },
     currentYaoIndex() {
       return Math.min(this.form.hexCode.length + 1, 6);
     },
+    currentYaoLabel() {
+      return YAO_LABELS[this.currentYaoIndex - 1] || "六爻";
+    },
     currentPrayer() {
       return this.prayers.find((p) => p.key === this.form.prayerKey) || this.prayers[0];
+    },
+    genderLabel() {
+      return this.genders.find((g) => g.value === this.form.gender)?.label || "";
     },
     timeLabel() {
       if (this.form.timeMode === "custom") {
@@ -544,26 +683,48 @@ export default {
       return "使用目前時間起卦";
     },
     stepItems() {
-      const order = [
-        ["intro", "介紹"],
-        ["topic", "問題"],
-        ["gender", "性別"],
-        ["time", "時間"],
-        ["calm", "靜心"],
-        ["prayer", "請神"],
-        ["roll", "擲爻"],
-        ["sendoff", "退神"],
-        ["result", "結果"],
-      ];
-      const activeIndex = order.findIndex(([key]) => {
-        if (this.result && key === "result") return true;
-        return key === this.step;
-      });
-      return order.map(([key, label], idx) => ({
+      return FLOW_ORDER.map((key, idx) => ({
         key,
-        label,
-        done: activeIndex > idx,
+        label: FLOW_LABELS[key],
+        active: this.result ? key === "result" : idx === this.activeFlowIndex,
+        done: this.result ? key !== "result" : this.activeFlowIndex > idx,
+        accessible: idx <= this.activeFlowIndex || (key === "result" && !!this.result),
       }));
+    },
+    rollMilestones() {
+      const currentKey = this.step === "mid" ? "mid" : `yao-${Math.min(this.form.hexCode.length + 1, 6)}`;
+      const items = [
+        { key: "yao-1", label: "初爻", index: 0 },
+        { key: "yao-2", label: "二爻", index: 1 },
+        { key: "yao-3", label: "三爻", index: 2 },
+        { key: "mid", label: "中場", index: 3 },
+        { key: "yao-4", label: "四爻", index: 4 },
+        { key: "yao-5", label: "五爻", index: 5 },
+        { key: "yao-6", label: "六爻", index: 6 },
+      ];
+      return items.map((item) => {
+        const done =
+          item.key === "mid"
+            ? this.form.hexCode.length > 3 || this.activeFlowIndex > FLOW_ORDER.indexOf("roll")
+            : this.form.hexCode.length > Number(item.key.replace("yao-", "")) - 1;
+        return {
+          ...item,
+          active: this.step === "roll" || this.step === "mid" ? item.key === currentKey : false,
+          done,
+        };
+      });
+    },
+    yaoPreviewRows() {
+      return YAO_LABELS.map((label, idx) => {
+        const value = this.form.hexCode[idx];
+        return {
+          index: idx,
+          label,
+          filled: value !== undefined,
+          current: this.step === "roll" && idx === this.form.hexCode.length,
+          text: value !== undefined ? yaoChoiceText(value) : "待擲",
+        };
+      }).reverse();
     },
     hexInfo() {
       const h = this.result?.hexData || {};
@@ -625,28 +786,84 @@ export default {
     this.visitorId = getVisitorId();
   },
   methods: {
+    stepIndex(key) {
+      return FLOW_ORDER.indexOf(key);
+    },
+    isStepDone(key) {
+      const idx = this.stepIndex(key);
+      if (idx < 0) return false;
+      return this.result ? key !== "result" : this.activeFlowIndex > idx;
+    },
+    isStepLocked(key) {
+      const idx = this.stepIndex(key);
+      if (idx < 0) return false;
+      return idx > this.activeFlowIndex && !(key === "result" && this.result);
+    },
+    flowClass(key) {
+      return [
+        "flow-panel",
+        {
+          active: !this.result && this.stepIndex(key) === this.activeFlowIndex,
+          done: this.isStepDone(key),
+          locked: this.isStepLocked(key),
+        },
+      ];
+    },
+    stateLabel(key) {
+      if (this.isStepDone(key)) return "已完成";
+      if (!this.isStepLocked(key)) return "進行中";
+      return "未開始";
+    },
+    scrollToFlowStep(key) {
+      this.$nextTick(() => {
+        const id = key === "result" ? "liuyao-step-result" : `liuyao-step-${key}`;
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    },
+    goStep(key) {
+      if (this.isStepLocked(key)) return;
+      if (key === "result") {
+        if (this.result) this.scrollToFlowStep("result");
+        return;
+      }
+      this.step = key;
+      this.scrollToFlowStep(key);
+    },
+    advanceTo(key) {
+      this.step = key;
+      this.scrollToFlowStep(key);
+    },
     selectTimeMode(mode) {
       this.form.timeMode = mode;
       if (mode === "now") this.form.questionTime = new Date().toISOString();
     },
     startRoll() {
       this.form.hexCode = "";
-      this.step = "roll";
+      this.advanceTo("roll");
     },
     recordYao(value) {
       if (this.form.hexCode.length >= 6) return;
       this.form.hexCode += value;
       if (this.form.hexCode.length === 3) {
         this.step = "mid";
+        this.scrollToFlowStep("roll");
         return;
       }
       if (this.form.hexCode.length === 6) {
-        this.step = "sendoff";
+        this.advanceTo("sendoff");
+        return;
       }
+      this.scrollToFlowStep("roll");
+    },
+    completeMid() {
+      this.step = "roll";
+      this.scrollToFlowStep("roll");
     },
     async submitFreeReading() {
       this.step = "loading";
       this.errorMessage = "";
+      this.scrollToFlowStep("sendoff");
       try {
         const payload = {
           visitorId: this.visitorId,
@@ -666,19 +883,18 @@ export default {
         const data = await res.json().catch(() => ({}));
         if (res.status === 429) {
           this.step = "limit";
+          this.scrollToFlowStep("sendoff");
           return;
         }
         if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
         this.result = data;
         this.step = "result";
-        this.$nextTick(() => {
-          const el = this.$el.querySelector(".result-section");
-          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
+        this.scrollToFlowStep("result");
       } catch (err) {
         this.errorMessage = "卦盤或 AI 解讀暫時無法完成，請稍後再試。";
         console.error("[liuyao tool] submit failed", err);
         this.step = "error";
+        this.scrollToFlowStep("sendoff");
       }
     },
     goBooking() {
@@ -702,6 +918,7 @@ export default {
       this.errorMessage = "";
       this.form.hexCode = "";
       this.step = "intro";
+      this.scrollToFlowStep("intro");
     },
     wuxingOf,
     wuxingOfDizhi,
@@ -715,28 +932,44 @@ export default {
 <style scoped>
 .liuyao-page {
   width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
-.liuyao-shell {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr);
-  gap: 18px;
-  align-items: start;
-}
-
-.flow-side,
-.panel,
+.liuyao-hero,
+.flow-panel,
 .result-section {
   border: 1px solid rgba(92, 69, 42, 0.16);
   border-radius: 8px;
-  background: rgba(255, 252, 247, 0.92);
+  background: rgba(255, 252, 247, 0.94);
   box-shadow: 0 14px 38px rgba(65, 45, 24, 0.08);
 }
 
-.flow-side {
+.liuyao-hero {
+  padding: 28px 30px;
+}
+
+.step-list {
   position: sticky;
-  top: 84px;
-  padding: 22px;
+  top: 72px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 7px;
+  margin: 14px 0 18px;
+  padding: 12px;
+  overflow-x: auto;
+  border: 1px solid rgba(92, 69, 42, 0.12);
+  border-radius: 8px;
+  background: rgba(248, 243, 235, 0.96);
+  box-shadow: 0 12px 28px rgba(65, 45, 24, 0.08);
+  -webkit-overflow-scrolling: touch;
+}
+
+.flow-main {
+  display: grid;
+  gap: 14px;
 }
 
 .eyebrow {
@@ -755,7 +988,7 @@ h3 {
 }
 
 h1 {
-  font-size: clamp(32px, 5vw, 48px);
+  font-size: 48px;
   line-height: 1.12;
 }
 
@@ -769,39 +1002,40 @@ h3 {
 }
 
 .intro,
-.panel p,
+.flow-panel p,
 .shensha-display p {
   color: #5d534b;
   line-height: 1.8;
 }
 
-.step-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: 7px;
-  row-gap: 8px;
-  margin-top: 20px;
-}
-
 .step-pill {
+  flex: 0 0 auto;
   padding: 5px 10px;
   border: 1px solid rgba(139, 111, 71, 0.22);
   border-radius: 999px;
   color: #6d6258;
   font-size: 12px;
+  font: inherit;
+  font-weight: 700;
   background: rgba(255, 255, 255, 0.56);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.step-pill:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .step-pill.active {
   color: #fff;
-  border-color: #2f7a2f;
-  background: #2f7a2f;
+  border-color: #942820;
+  background: #942820;
 }
 
 .step-pill.done {
-  color: #2f7a2f;
-  border-color: rgba(47, 122, 47, 0.34);
+  color: #2f6f38;
+  border-color: rgba(47, 111, 56, 0.34);
 }
 
 .step-arrow {
@@ -811,12 +1045,89 @@ h3 {
   transform: translateY(-1px);
 }
 
-.tool-surface {
-  min-width: 0;
+.flow-panel {
+  scroll-margin-top: 150px;
+  padding: 24px;
+  transition: border-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
-.panel {
-  padding: 24px;
+.flow-panel.active {
+  border-color: rgba(148, 40, 32, 0.34);
+  box-shadow:
+    0 0 0 2px rgba(148, 40, 32, 0.06),
+    0 16px 38px rgba(65, 45, 24, 0.1);
+}
+
+.flow-panel.done {
+  background: rgba(255, 252, 247, 0.82);
+}
+
+.flow-panel.locked {
+  opacity: 0.54;
+}
+
+.flow-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.flow-head > div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.step-no,
+.section-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.step-no {
+  width: 36px;
+  color: #8b6f47;
+  background: #f1e8d8;
+}
+
+.section-state {
+  padding: 4px 10px;
+  color: #7f6f5c;
+  background: rgba(139, 111, 71, 0.1);
+}
+
+.flow-panel.active .step-no,
+.flow-panel.active .section-state {
+  color: #fff;
+  background: #942820;
+}
+
+.flow-body {
+  margin-top: 16px;
+}
+
+.summary-text {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 6px;
+  color: #3d332b;
+  background: #f6f1e8;
+  word-break: break-word;
+}
+
+.text-btn {
+  border: 0;
+  background: transparent;
+  color: #942820;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .field-label {
@@ -895,7 +1206,14 @@ h3 {
 
 .ghost-btn {
   background: transparent;
-  color: #2f7a2f;
+  color: #2f6f38;
+}
+
+.ghost-btn:disabled,
+.segmented button:disabled,
+.prayer-option:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .segmented {
@@ -922,8 +1240,8 @@ h3 {
 
 .segmented button.selected,
 .prayer-option.selected {
-  border-color: #2f7a2f;
-  background: rgba(47, 122, 47, 0.1);
+  border-color: #2f6f38;
+  background: rgba(47, 111, 56, 0.1);
 }
 
 .calm-panel {
@@ -970,21 +1288,93 @@ h3 {
   color: #2f2924;
 }
 
-.progress-row {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+.yao-track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
   margin: 18px 0;
 }
 
-.progress-row span {
-  height: 10px;
-  border-radius: 99px;
-  background: #ddd6c9;
+.yao-stage {
+  padding: 5px 10px;
+  border: 1px solid rgba(139, 111, 71, 0.2);
+  border-radius: 999px;
+  color: #6d6258;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.66);
 }
 
-.progress-row span.filled {
-  background: #2f7a2f;
+.yao-stage.active {
+  color: #fff;
+  border-color: #942820;
+  background: #942820;
+}
+
+.yao-stage.done {
+  color: #2f6f38;
+  border-color: rgba(47, 111, 56, 0.34);
+  background: rgba(47, 111, 56, 0.08);
+}
+
+.roll-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.78fr) minmax(0, 1.22fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.yao-stack {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(92, 69, 42, 0.14);
+  border-radius: 8px;
+  background: #f7f3ed;
+}
+
+.yao-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px dashed rgba(139, 111, 71, 0.24);
+  border-radius: 6px;
+  color: #8a8076;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.yao-row.filled {
+  border-style: solid;
+  color: #3d332b;
+  background: #fffdf9;
+}
+
+.yao-row.current {
+  border-color: rgba(148, 40, 32, 0.5);
+  color: #942820;
+  box-shadow: inset 4px 0 0 #942820;
+}
+
+.yao-row span {
+  color: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.yao-row strong {
+  font-size: 14px;
+}
+
+.roll-control {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(92, 69, 42, 0.14);
+  border-radius: 8px;
+  background: #fffdf9;
 }
 
 .coin-grid {
@@ -998,20 +1388,35 @@ h3 {
   border: 1px solid rgba(92, 69, 42, 0.16);
   border-radius: 8px;
   background: #fffdf9;
-  padding: 8px;
+  min-height: 88px;
+  padding: 14px;
   cursor: pointer;
   font: inherit;
-  font-weight: 700;
   color: #3a3128;
+  text-align: left;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
-.coin-choice img {
+.coin-choice:hover {
+  border-color: rgba(148, 40, 32, 0.4);
+  box-shadow: 0 8px 18px rgba(65, 45, 24, 0.08);
+  transform: translateY(-1px);
+}
+
+.coin-choice strong,
+.coin-choice span {
   display: block;
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 6px;
-  margin-bottom: 8px;
+}
+
+.coin-choice strong {
+  font-size: 18px;
+  color: #2a1f1a;
+}
+
+.coin-choice span {
+  margin-top: 6px;
+  color: #75695f;
+  font-size: 13px;
 }
 
 .hex-code,
@@ -1310,17 +1715,13 @@ h3 {
 }
 
 @media (max-width: 920px) {
-  .liuyao-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .flow-side {
-    position: static;
-  }
-
   .prayer-grid,
   .coin-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .roll-layout {
+    grid-template-columns: 1fr;
   }
 
   .result-head {
@@ -1330,10 +1731,28 @@ h3 {
 }
 
 @media (max-width: 560px) {
-  .panel,
-  .flow-side,
+  .liuyao-hero,
+  .flow-panel,
   .result-section {
     padding: 16px;
+  }
+
+  h1 {
+    font-size: 34px;
+  }
+
+  .step-list {
+    top: 64px;
+    margin-top: 10px;
+  }
+
+  .flow-head,
+  .flow-head > div {
+    align-items: flex-start;
+  }
+
+  .flow-head {
+    flex-direction: column;
   }
 
   .segmented,
