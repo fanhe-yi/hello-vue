@@ -8,21 +8,20 @@
           一卦只問一件事。依序完成靜心、請神、擲六爻與退神後，系統會產出卦盤與簡易解讀。
         </p>
         <div class="step-list" aria-label="流程進度">
-          <span
-            v-for="item in stepItems"
-            :key="item.key"
-            :class="['step-pill', { active: item.key === step, done: item.done }]"
-          >
-            {{ item.label }}
-          </span>
+          <template v-for="(item, idx) in stepItems" :key="item.key">
+            <span :class="['step-pill', { active: item.key === step, done: item.done }]">
+              {{ item.label }}
+            </span>
+            <span v-if="idx < stepItems.length - 1" class="step-arrow" aria-hidden="true">›</span>
+          </template>
         </div>
       </aside>
 
       <main class="tool-surface">
         <section v-if="step === 'intro'" class="panel">
-          <h2>免費簡易卜卦</h2>
+          <h2>起卦前準備</h2>
           <p>
-            免費版每日每個瀏覽器可使用一次，結果為簡要參考。若要針對用神、動爻與應期做完整判斷，可在結果頁預約老師正式解卦。
+            請先確認這次只問一件事。問題越清楚，卦盤越能聚焦；完成退神後，系統會整理卦盤與方向摘要。
           </p>
           <button class="primary-btn" type="button" @click="step = 'topic'">
             開始
@@ -185,7 +184,7 @@
 
         <section v-else-if="step === 'limit'" class="panel calm-panel">
           <h2>今日免費次數已用完</h2>
-          <p>免費版每日每個瀏覽器可使用一次。若這一卦很重要，可以直接預約老師正式解卦。</p>
+          <p>今日體驗次數已用完。若這一卦很重要，可以直接預約老師正式解卦。</p>
           <button class="primary-btn" type="button" @click="goBooking">
             預約老師解卦
           </button>
@@ -779,7 +778,9 @@ h3 {
 .step-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  column-gap: 7px;
+  row-gap: 8px;
   margin-top: 20px;
 }
 
@@ -801,6 +802,13 @@ h3 {
 .step-pill.done {
   color: #2f7a2f;
   border-color: rgba(47, 122, 47, 0.34);
+}
+
+.step-arrow {
+  color: #9d8566;
+  font-size: 17px;
+  line-height: 1;
+  transform: translateY(-1px);
 }
 
 .tool-surface {
@@ -858,13 +866,31 @@ h3 {
 }
 
 .primary-btn {
-  background: #2f7a2f;
+  border-color: #8e241e;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 34%),
+    linear-gradient(180deg, #bd473b 0%, #932821 58%, #6e1b17 100%);
   color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -10px 18px rgba(82, 17, 15, 0.16),
+    0 10px 22px rgba(111, 29, 25, 0.2);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.primary-btn:hover:not(:disabled) {
+  filter: saturate(1.04);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -10px 18px rgba(82, 17, 15, 0.18),
+    0 12px 24px rgba(111, 29, 25, 0.25);
 }
 
 .primary-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
 }
 
 .ghost-btn {
