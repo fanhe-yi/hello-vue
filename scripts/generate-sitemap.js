@@ -206,6 +206,15 @@ async function main() {
     console.log("[sitemap] 嘗試從 API 抓取文章：", API_URL);
     articles = await fetchArticles();
     console.log(`[sitemap] ✅ 從 API 取得 ${articles.length} 篇文章`);
+    if (articles.length === 0) {
+      const localArticles = readLocalIndex();
+      if (localArticles.length > 0) {
+        console.warn(
+          `[sitemap] ⚠ API 回傳 0 篇，改用本機 index.json 的 ${localArticles.length} 篇文章`,
+        );
+        articles = localArticles;
+      }
+    }
   } catch (err) {
     console.warn("[sitemap] ⚠ API 失敗，改用本機 index.json：", err.message);
     articles = readLocalIndex();
