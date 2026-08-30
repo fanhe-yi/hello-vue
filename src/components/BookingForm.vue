@@ -71,7 +71,7 @@
         <fieldset class="field-block">
           <legend class="field-legend">
             <span class="field-num">③</span> 聯絡方式
-            <span class="hint">至少填一項</span>
+            <span class="hint">{{ contactHint }}</span>
           </legend>
           <div class="contact-stack">
             <div class="input-with-icon">
@@ -81,9 +81,10 @@
                 type="email"
                 v-model="form.email"
                 class="input"
-                placeholder="Email（例如：you@gmail.com）"
+                :placeholder="emailPlaceholder"
                 autocomplete="email"
                 inputmode="email"
+                :required="isWebLiuYaoBooking"
               />
             </div>
             <div class="input-with-icon">
@@ -258,6 +259,17 @@ export default {
     currentService() {
       return this.services.find((s) => s.id === this.form.serviceId) || null;
     },
+    isWebLiuYaoBooking() {
+      return this.form.source === "liuyao_web_free_cta" && this.form.serviceId === "liuyao";
+    },
+    contactHint() {
+      return this.isWebLiuYaoBooking ? "Email 必填" : "至少填一項";
+    },
+    emailPlaceholder() {
+      return this.isWebLiuYaoBooking
+        ? "Email 必填，老師會用此方式聯絡您"
+        : "Email（例如：you@gmail.com）";
+    },
     availableTimeSlots() {
       return this.slotsForSelectedDate
         .filter((s) => s.status === "open")
@@ -304,11 +316,17 @@ export default {
       };
       if (!this.form.serviceId) this.errors.serviceId = "請選擇論命項目";
       if (!this.form.name) this.errors.name = "請填寫姓名";
+      const email = String(this.form.email || "").trim();
+      if (this.isWebLiuYaoBooking && !email) {
+        this.errors.contact = "預約老師解卦需填寫 Email，方便老師後續聯絡";
+      } else if (this.isWebLiuYaoBooking && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        this.errors.contact = "請填寫有效的 Email";
+      }
       const hasContact =
-        (this.form.email && this.form.email.trim()) ||
+        email ||
         (this.form.phone && this.form.phone.trim()) ||
         (this.form.lineId && this.form.lineId.trim());
-      if (!hasContact)
+      if (!this.isWebLiuYaoBooking && !hasContact)
         this.errors.contact =
           "請至少填一種聯絡方式（Email / 電話 / LINE 其一即可）";
       if (!this.form.date) this.errors.date = "請選擇預約日期";
