@@ -194,6 +194,8 @@ function ensureDir(filePath) {
     "/about",
     "/tools",
     "/tools/liuyao",
+    "/tools/bazi",
+    "/tools/ziwei",
     "/articles",
     "/tools/nameology",
 

@@ -18,23 +18,23 @@
         <span class="tool-action">開始使用</span>
       </router-link>
 
-      <article class="tool-card disabled">
+      <router-link class="tool-card active" to="/tools/bazi">
         <div>
-          <span class="tool-kicker">準備中</span>
+          <span class="tool-kicker">已開放</span>
           <h2>八字算命</h2>
-          <p>出生年月日時排盤與基礎命盤整理。</p>
+          <p>選擇出生年月日與時辰，排出四柱、十神、藏干與大運概要。</p>
         </div>
-        <span class="tool-action">尚未開放</span>
-      </article>
+        <span class="tool-action">開始排盤</span>
+      </router-link>
 
-      <article class="tool-card disabled">
+      <router-link class="tool-card active" to="/tools/ziwei">
         <div>
-          <span class="tool-kicker">準備中</span>
+          <span class="tool-kicker">已開放</span>
           <h2>紫微算命</h2>
-          <p>紫微斗數命盤與宮位重點整理。</p>
+          <p>選擇出生年月日與時辰，排出十二宮、主星、四化與大限概要。</p>
         </div>
-        <span class="tool-action">尚未開放</span>
-      </article>
+        <span class="tool-action">開始排盤</span>
+      </router-link>
     </section>
   </div>
 </template>

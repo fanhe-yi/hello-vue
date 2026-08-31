@@ -210,6 +210,40 @@
 const API_BASE_URL =
   process.env.VUE_APP_API_BASE_URL || "http://localhost:3000";
 const LIUYAO_CONTEXT_KEY = "liuyao_paid_context";
+const BAZI_CONTEXT_KEY = "bazi_booking_context";
+const ZIWEI_CONTEXT_KEY = "ziwei_booking_context";
+
+function buildBaziPrefill(context) {
+  if (!context?.birth) return "";
+  const lines = [
+    "【網頁八字排盤】",
+    `想問方向：${context.focus || "未指定"}`,
+    `性別：${context.birth.genderLabel || "未指定"}`,
+    `出生日期：${context.birth.dateLabel || context.birth.date || "未指定"}`,
+    `出生時辰：${context.birth.timeLabel || "未指定"}`,
+    `日主：${context.dayMaster || "未載入"}`,
+    ...(Array.isArray(context.pillars) ? context.pillars : []),
+  ];
+  return lines.join("\n");
+}
+
+function buildZiweiPrefill(context) {
+  if (!context?.birth) return "";
+  const lines = [
+    "【網頁紫微排盤】",
+    `想問方向：${context.focus || "未指定"}`,
+    `性別：${context.birth.genderLabel || "未指定"}`,
+    `出生日期：${context.birth.dateLabel || context.birth.date || "未指定"}`,
+    `出生時辰：${context.birth.timeLabel || "未指定"}`,
+    `五行局：${context.fiveElementsClass || "未載入"}`,
+    `四柱：${context.chineseDate || "未載入"}`,
+    ...(Array.isArray(context.palaces) ? context.palaces : []),
+    ...(Array.isArray(context.sihua) && context.sihua.length
+      ? ["生年四化：" + context.sihua.join("、")]
+      : []),
+  ];
+  return lines.join("\n");
+}
 
 export default {
   name: "BookingForm",
@@ -421,6 +455,32 @@ export default {
           }
         } catch (err) {
           console.error("讀取六爻預約資料失敗：", err);
+        }
+      }
+      if (query.source === "bazi_web_tool_cta" && this.form.serviceId === "bazi") {
+        this.form.source = "bazi_web_tool_cta";
+        try {
+          const raw = sessionStorage.getItem(BAZI_CONTEXT_KEY);
+          const context = raw ? JSON.parse(raw) : null;
+          const prefill = buildBaziPrefill(context);
+          if (prefill && !this.form.note.includes("【網頁八字排盤】")) {
+            this.form.note = this.form.note ? `${this.form.note}\n\n${prefill}` : prefill;
+          }
+        } catch (err) {
+          console.error("讀取八字排盤預約資料失敗：", err);
+        }
+      }
+      if (query.source === "ziwei_web_tool_cta" && this.form.serviceId === "ziwei") {
+        this.form.source = "ziwei_web_tool_cta";
+        try {
+          const raw = sessionStorage.getItem(ZIWEI_CONTEXT_KEY);
+          const context = raw ? JSON.parse(raw) : null;
+          const prefill = buildZiweiPrefill(context);
+          if (prefill && !this.form.note.includes("【網頁紫微排盤】")) {
+            this.form.note = this.form.note ? `${this.form.note}\n\n${prefill}` : prefill;
+          }
+        } catch (err) {
+          console.error("讀取紫微排盤預約資料失敗：", err);
         }
       }
     },

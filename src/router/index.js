@@ -14,6 +14,8 @@ import AboutView from "../views/AboutView.vue";
 import NameologyView from "../views/NameologyView.vue";
 import ToolsView from "../views/ToolsView.vue";
 import LiuYaoToolView from "../views/LiuYaoToolView.vue";
+import BaziToolView from "../views/BaziToolView.vue";
+import ZiWeiToolView from "../views/ZiWeiToolView.vue";
 import AdminUnavailable from "@/views/AdminUnavailable.vue";
 import LiffBookingView from "@/views/LiffBookingView.vue";
 
@@ -62,6 +64,16 @@ const routes = [
     path: "/tools/liuyao",
     name: "LiuYaoTool",
     component: LiuYaoToolView,
+  },
+  {
+    path: "/tools/bazi",
+    name: "BaziTool",
+    component: BaziToolView,
+  },
+  {
+    path: "/tools/ziwei",
+    name: "ZiWeiTool",
+    component: ZiWeiToolView,
   },
 
   /* =========================
