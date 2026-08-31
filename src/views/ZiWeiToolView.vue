@@ -87,14 +87,46 @@
         <div><span>身宮</span><strong>{{ bodyPalaceLabel }}</strong></div>
       </div>
 
-      <section class="chart-block">
-        <h3>基本盤</h3>
-        <div class="basic-list">
+      <section class="ziwei-board" aria-label="紫微命盤 4x4 地支盤">
+        <article
+          v-for="cell in gridCells"
+          :key="cell.branch"
+          class="ziwei-cell"
+          :class="{ soul: cell.palace && cell.palace.isSoulPalace, body: cell.palace && cell.palace.isBodyPalace }"
+          :style="{ gridArea: cell.area }"
+        >
+          <div class="cell-head">
+            <span>{{ cell.branch }}</span>
+            <strong>{{ cell.palace ? cell.palace.name : "空宮" }}</strong>
+          </div>
+          <div v-if="cell.palace" class="cell-badges">
+            <em v-if="cell.palace.isSoulPalace">命</em>
+            <em v-if="cell.palace.isBodyPalace">身</em>
+            <small>{{ cell.palace.heavenlyStem }}{{ cell.palace.earthlyBranch }}</small>
+          </div>
+          <p>{{ cell.palace ? starText(cell.palace.majorStars, "空宮") : "未載入" }}</p>
+          <small v-if="cell.palace && cell.palace.decadal && cell.palace.decadal.range.length" class="decadal-text">
+            {{ cell.palace.decadal.range[0] }}-{{ cell.palace.decadal.range[1] }} 歲
+          </small>
+        </article>
+
+        <div class="chart-center" aria-label="基本資料">
+          <strong>{{ chart.birth.genderLabel }}｜{{ chart.birth.dateLabel }}</strong>
+          <span>{{ chart.birth.timeLabel }}</span>
           <span>農曆：{{ chart.lunarDate }}</span>
           <span>四柱：{{ chart.chineseDate }}</span>
           <span>五行局：{{ chart.fiveElementsClass }}</span>
-          <span>命主：{{ chart.soul || "未載入" }}</span>
-          <span>身主：{{ chart.body || "未載入" }}</span>
+          <span>命主 {{ chart.soul || "未載入" }} · 身主 {{ chart.body || "未載入" }}</span>
+        </div>
+      </section>
+
+      <section v-if="chart.guide && chart.guide.length" class="chart-block">
+        <h3>基礎導讀</h3>
+        <div class="guide-grid">
+          <article v-for="item in chart.guide" :key="item.title" class="guide-card">
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.body }}</p>
+          </article>
         </div>
       </section>
 
@@ -107,7 +139,9 @@
         </div>
       </section>
 
-      <section class="palace-grid" aria-label="紫微十二宮">
+      <section class="chart-block">
+        <h3>十二宮詳表</h3>
+        <div class="palace-grid" aria-label="紫微十二宮詳表">
         <article v-for="palace in orderedPalaces" :key="palace.index" class="palace-card">
           <div class="palace-head">
             <div>
@@ -133,7 +167,13 @@
             <span>{{ palace.changsheng12 }} · {{ palace.boshi12 }}</span>
           </div>
         </article>
+        </div>
       </section>
+
+      <details v-if="chart.chartText" class="chart-text">
+        <summary>文字盤摘要</summary>
+        <pre>{{ chart.chartText }}</pre>
+      </details>
 
       <p class="notice">
         目前頁面只提供排盤資料，不提供完整命理解讀。十二宮互動、四化與大限流年仍需由老師綜合判斷。
@@ -163,6 +203,20 @@ const FALLBACK_SHICHEN = [
 ];
 
 const PALACE_ORDER = ["命宮", "兄弟", "夫妻", "子女", "財帛", "疾厄", "遷移", "交友", "官祿", "田宅", "福德", "父母"];
+const BRANCH_AREAS = {
+  巳: "si",
+  午: "wu",
+  未: "wei",
+  申: "shen",
+  辰: "chen",
+  酉: "you",
+  卯: "mao",
+  戌: "xu",
+  寅: "yin",
+  丑: "chou",
+  子: "zi",
+  亥: "hai",
+};
 
 function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
@@ -210,6 +264,16 @@ export default {
     },
     currentFocusLabel() {
       return this.focusOptions.find((item) => item.value === this.form.focus)?.label || "整體命盤";
+    },
+    gridCells() {
+      if (!Array.isArray(this.chart?.grid)) return [];
+      return this.chart.grid
+        .flat()
+        .filter((cell) => cell && cell.branch)
+        .map((cell) => ({
+          ...cell,
+          area: BRANCH_AREAS[cell.branch] || "auto",
+        }));
     },
     orderedPalaces() {
       if (!this.chart?.palaces) return [];
@@ -292,6 +356,8 @@ export default {
         chineseDate: this.chart.chineseDate,
         palaces: mainPalaces,
         sihua: (this.chart.sihua || []).map((item) => `${item.palace} ${item.star}${item.hua}`),
+        guide: (this.chart.guide || []).map((item) => `${item.title}：${item.body}`),
+        chartText: this.chart.chartText || "",
       };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
       this.$router.push({
@@ -480,6 +546,146 @@ export default {
   font-size: 13px;
 }
 
+.ziwei-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(132px, 1fr));
+  grid-template-areas:
+    "si wu wei shen"
+    "chen center center you"
+    "mao center center xu"
+    "yin chou zi hai";
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ziwei-cell,
+.chart-center {
+  border: 1px solid rgba(92, 69, 42, 0.14);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.ziwei-cell {
+  min-height: 160px;
+  padding: 12px;
+}
+
+.ziwei-cell.soul {
+  border-color: rgba(185, 58, 50, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(185, 58, 50, 0.08);
+}
+
+.ziwei-cell.body {
+  border-color: rgba(47, 122, 47, 0.38);
+}
+
+.cell-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cell-head span {
+  color: #8b6f47;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.cell-head strong {
+  min-width: 0;
+  color: #2a1f1a;
+  font-size: 16px;
+}
+
+.cell-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.cell-badges em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #b93a32;
+  color: #fff;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cell-badges small,
+.decadal-text {
+  color: #7a6c60;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ziwei-cell p {
+  margin: 10px 0 0;
+  color: #40362f;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.decadal-text {
+  display: block;
+  margin-top: 8px;
+}
+
+.chart-center {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px;
+  text-align: center;
+}
+
+.chart-center strong {
+  color: #2a1f1a;
+  font-size: 17px;
+}
+
+.chart-center span {
+  color: #5d534b;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guide-card {
+  padding: 12px;
+  border: 1px solid rgba(92, 69, 42, 0.12);
+  border-radius: 8px;
+  background: rgba(250, 246, 238, 0.82);
+}
+
+.guide-card strong {
+  display: block;
+  color: #8b3a32;
+  font-size: 15px;
+}
+
+.guide-card p {
+  margin: 6px 0 0;
+  color: #4f463e;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
 .palace-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -546,6 +752,30 @@ export default {
   margin-top: 12px;
 }
 
+.chart-text {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(92, 69, 42, 0.14);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.chart-text summary {
+  cursor: pointer;
+  color: #8b6f47;
+  font-weight: 700;
+}
+
+.chart-text pre {
+  overflow: auto;
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #40362f;
+  font: inherit;
+  line-height: 1.65;
+}
+
 .notice {
   margin: 16px 0 0;
   color: #6a5d53;
@@ -555,8 +785,15 @@ export default {
 @media (max-width: 980px) {
   .selector-grid,
   .meta-grid,
+  .guide-grid,
   .palace-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ziwei-board {
+    grid-template-columns: repeat(4, minmax(116px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 4px;
   }
 }
 
@@ -573,8 +810,20 @@ export default {
 
   .selector-grid,
   .meta-grid,
+  .guide-grid,
   .palace-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ziwei-board {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+    overflow-x: visible;
+  }
+
+  .ziwei-cell,
+  .chart-center {
+    grid-area: auto !important;
   }
 
   .actions {

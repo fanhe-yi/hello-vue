@@ -223,6 +223,10 @@ function buildBaziPrefill(context) {
     `出生時辰：${context.birth.timeLabel || "未指定"}`,
     `日主：${context.dayMaster || "未載入"}`,
     ...(Array.isArray(context.pillars) ? context.pillars : []),
+    ...(context.currentDayun ? [`目前大運：${context.currentDayun}`] : []),
+    ...(Array.isArray(context.guide) && context.guide.length
+      ? ["基礎導讀：", ...context.guide.slice(0, 4)]
+      : []),
   ];
   return lines.join("\n");
 }
@@ -240,6 +244,9 @@ function buildZiweiPrefill(context) {
     ...(Array.isArray(context.palaces) ? context.palaces : []),
     ...(Array.isArray(context.sihua) && context.sihua.length
       ? ["生年四化：" + context.sihua.join("、")]
+      : []),
+    ...(Array.isArray(context.guide) && context.guide.length
+      ? ["基礎導讀：", ...context.guide.slice(0, 4)]
       : []),
   ];
   return lines.join("\n");

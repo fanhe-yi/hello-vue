@@ -101,6 +101,16 @@
         </article>
       </div>
 
+      <section v-if="chart.guide && chart.guide.length" class="chart-block">
+        <h3>基礎導讀</h3>
+        <div class="guide-grid">
+          <article v-for="item in chart.guide" :key="item.title" class="guide-card">
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.body }}</p>
+          </article>
+        </div>
+      </section>
+
       <section class="chart-block">
         <h3>五行分布</h3>
         <div class="element-bars">
@@ -116,12 +126,21 @@
 
       <section class="chart-block">
         <h3>大運概要</h3>
+        <p v-if="chart.currentDayun" class="current-line">
+          目前大運：{{ chart.currentDayun.startAge }}-{{ chart.currentDayun.endAge }} 歲 ·
+          {{ chart.currentDayun.ganzhi }}
+        </p>
         <div class="dayun-list">
           <span v-for="item in chart.dayun" :key="item.index" class="dayun-chip">
             {{ item.startAge }}-{{ item.endAge }} 歲 · {{ item.ganzhi }}
           </span>
         </div>
       </section>
+
+      <details v-if="chart.chartText" class="chart-text">
+        <summary>文字盤摘要</summary>
+        <pre>{{ chart.chartText }}</pre>
+      </details>
 
       <p class="notice">
         目前頁面只提供排盤資料，不提供完整命理解讀。若要判斷格局、流年與具體問題，請預約老師正式分析。
@@ -255,6 +274,11 @@ export default {
         birth: this.chart.birth,
         pillars: this.chart.pillars.map((item) => `${item.label}：${item.ganzhi}${item.tenGod ? `（${item.tenGod}）` : ""}`),
         dayMaster: `${this.chart.dayMaster}${this.chart.dayMasterElement}`,
+        guide: (this.chart.guide || []).map((item) => `${item.title}：${item.body}`),
+        currentDayun: this.chart.currentDayun
+          ? `${this.chart.currentDayun.startAge}-${this.chart.currentDayun.endAge}歲 ${this.chart.currentDayun.ganzhi}`
+          : "",
+        chartText: this.chart.chartText || "",
       };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
       this.$router.push({
@@ -474,6 +498,32 @@ export default {
   font-size: 20px;
 }
 
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guide-card {
+  padding: 12px;
+  border: 1px solid rgba(92, 69, 42, 0.12);
+  border-radius: 8px;
+  background: rgba(250, 246, 238, 0.82);
+}
+
+.guide-card strong {
+  display: block;
+  color: #8b3a32;
+  font-size: 15px;
+}
+
+.guide-card p {
+  margin: 6px 0 0;
+  color: #4f463e;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
 .element-row {
   display: grid;
   grid-template-columns: 30px 1fr 42px;
@@ -502,6 +552,37 @@ export default {
   gap: 8px;
 }
 
+.current-line {
+  margin: 0 0 12px;
+  color: #315d2f;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.chart-text {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(92, 69, 42, 0.14);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.chart-text summary {
+  cursor: pointer;
+  color: #8b6f47;
+  font-weight: 700;
+}
+
+.chart-text pre {
+  overflow: auto;
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #40362f;
+  font: inherit;
+  line-height: 1.65;
+}
+
 .notice {
   margin: 16px 0 0;
   color: #6a5d53;
@@ -511,7 +592,8 @@ export default {
 @media (max-width: 900px) {
   .selector-grid,
   .meta-grid,
-  .pillar-grid {
+  .pillar-grid,
+  .guide-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -529,7 +611,8 @@ export default {
 
   .selector-grid,
   .meta-grid,
-  .pillar-grid {
+  .pillar-grid,
+  .guide-grid {
     grid-template-columns: 1fr;
   }
 
