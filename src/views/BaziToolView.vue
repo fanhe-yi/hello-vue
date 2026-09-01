@@ -142,39 +142,6 @@
         <pre>{{ chart.chartText }}</pre>
       </details>
 
-      <section class="chart-block ai-block">
-        <h3>AI 免費短解析</h3>
-        <p class="block-copy">
-          免費短解析每日限一次，提供命盤閱讀方向；完整雙盤印證可升級 Pro 報告。
-        </p>
-        <button class="secondary-btn" type="button" :disabled="aiLoading" @click="loadAiReading">
-          {{ aiLoading ? "解析中..." : "產生免費短解析" }}
-        </button>
-        <p v-if="aiError" class="error-text">{{ aiError }}</p>
-        <pre v-if="aiReading" class="ai-reading">{{ aiReading }}</pre>
-      </section>
-
-      <section class="chart-block pro-block">
-        <h3>Pro 八字紫微綜合報告</h3>
-        <p class="block-copy">
-          Pro 報告會同時用八字與紫微交叉印證，付款或活動碼通過後在成功頁查看 HTML 報告。
-        </p>
-        <div class="pro-form">
-          <label>
-            <span>Email</span>
-            <input v-model.trim="pro.email" class="text-input" type="email" placeholder="you@example.com" />
-          </label>
-          <label>
-            <span>活動碼</span>
-            <input v-model.trim="pro.activityCode" class="text-input" type="text" placeholder="有活動碼再填" />
-          </label>
-        </div>
-        <button class="primary-btn" type="button" :disabled="pro.loading" @click="orderProReport">
-          {{ pro.loading ? "建立中..." : "升級 Pro 報告" }}
-        </button>
-        <p v-if="pro.message" class="pro-message">{{ pro.message }}</p>
-      </section>
-
       <p class="notice">
         目前頁面只提供排盤資料，不提供完整命理解讀。若要判斷格局、流年與具體問題，請預約老師正式分析。
       </p>
@@ -183,8 +150,6 @@
 </template>
 
 <script>
-import { getWebVisitorId } from "@/utils/webVisitor";
-
 const API_BASE_URL = process.env.VUE_APP_API_BASE_URL || "http://localhost:3000";
 const STORAGE_KEY = "bazi_booking_context";
 
@@ -233,15 +198,6 @@ export default {
       chart: null,
       loading: false,
       errorMessage: "",
-      aiReading: "",
-      aiLoading: false,
-      aiError: "",
-      pro: {
-        email: "",
-        activityCode: "",
-        loading: false,
-        message: "",
-      },
     };
   },
   computed: {
@@ -295,9 +251,6 @@ export default {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
         this.chart = data;
-        this.aiReading = "";
-        this.aiError = "";
-        this.pro.message = "";
         this.$nextTick(() => {
           const el = this.$el.querySelector(".result-section");
           if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -314,79 +267,6 @@ export default {
     elementWidth(value) {
       const max = Math.max(...this.chart.fiveElements.map((item) => Number(item.value || 0)), 1);
       return `${Math.max(6, (Number(value || 0) / max) * 100)}%`;
-    },
-    async loadAiReading() {
-      if (!this.chart) return;
-      this.aiLoading = true;
-      this.aiError = "";
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/tools/ai/free-reading`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...this.form,
-            tool: "bazi",
-            visitorId: getWebVisitorId(),
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 429) {
-          this.aiError = "今日免費 AI 短解析已使用完畢；可以明天再試，或升級 Pro 綜合報告。";
-          return;
-        }
-        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        this.aiReading = data.reading || "";
-      } catch (err) {
-        this.aiError = "目前無法產生 AI 短解析，請稍後再試。";
-      } finally {
-        this.aiLoading = false;
-      }
-    },
-    async orderProReport() {
-      if (!this.chart) return;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.pro.email)) {
-        this.pro.message = "請先填寫有效 Email，方便報告查詢與活動碼綁定。";
-        return;
-      }
-      this.pro.loading = true;
-      this.pro.message = "";
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/tools/reports/order`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...this.form,
-            email: this.pro.email,
-            activityCode: this.pro.activityCode,
-            visitorId: getWebVisitorId(),
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok) {
-          if (data.error === "REPORT_PAYMENT_DISABLED") {
-            this.pro.message = "Pro 報告刷卡尚未開放，目前請使用活動碼測試。";
-            return;
-          }
-          if (String(data.error || "").startsWith("ACTIVITY_CODE_")) {
-            this.pro.message = "活動碼無效、已使用或已過期。";
-            return;
-          }
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
-        if (data.paymentUrl) {
-          window.location.href = data.paymentUrl;
-          return;
-        }
-        if (data.reportUrl) {
-          window.location.href = data.reportUrl;
-          return;
-        }
-        this.pro.message = "報告已建立，請稍後查看。";
-      } catch (err) {
-        this.pro.message = "目前無法建立 Pro 報告，請稍後再試。";
-      } finally {
-        this.pro.loading = false;
-      }
     },
     goBooking() {
       const context = {
@@ -703,75 +583,6 @@ export default {
   line-height: 1.65;
 }
 
-.block-copy {
-  margin: 0 0 12px;
-  color: #5d534b;
-  line-height: 1.7;
-}
-
-.secondary-btn {
-  min-height: 44px;
-  padding: 11px 18px;
-  border: 1px solid #8b6f47;
-  border-radius: 999px;
-  background: #fffdf8;
-  color: #6c5431;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-}
-
-.secondary-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.ai-reading {
-  margin: 14px 0 0;
-  padding: 14px;
-  border: 1px solid rgba(92, 69, 42, 0.12);
-  border-radius: 8px;
-  background: rgba(250, 246, 238, 0.82);
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: #40362f;
-  font: inherit;
-  line-height: 1.75;
-}
-
-.pro-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 12px 0;
-}
-
-.pro-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  color: #4f463e;
-  font-weight: 700;
-}
-
-.text-input {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid rgba(92, 69, 42, 0.18);
-  border-radius: 8px;
-  background: #fffdf8;
-  color: #2a1f1a;
-  font: inherit;
-}
-
-.pro-message {
-  margin: 12px 0 0;
-  color: #8b3a32;
-  font-weight: 700;
-  line-height: 1.6;
-}
-
 .notice {
   margin: 16px 0 0;
   color: #6a5d53;
@@ -782,8 +593,7 @@ export default {
   .selector-grid,
   .meta-grid,
   .pillar-grid,
-  .guide-grid,
-  .pro-form {
+  .guide-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -802,8 +612,7 @@ export default {
   .selector-grid,
   .meta-grid,
   .pillar-grid,
-  .guide-grid,
-  .pro-form {
+  .guide-grid {
     grid-template-columns: 1fr;
   }
 
@@ -811,8 +620,7 @@ export default {
     justify-content: stretch;
   }
 
-  .primary-btn,
-  .secondary-btn {
+  .primary-btn {
     width: 100%;
   }
 }
