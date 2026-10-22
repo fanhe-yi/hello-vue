@@ -287,7 +287,10 @@ export default {
         timeSlots: [],
         note: "",
       },
-      todayStr: new Date().toISOString().slice(0, 10),
+      // 最早可預約日 = 台灣時間今天 + 2 天（與後端 BOOKING_MIN_DAYS_AHEAD 一致）
+      todayStr: new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Taipei",
+      }).format(new Date(Date.now() + 2 * 86400000)),
       errors: {
         serviceId: "",
         name: "",
